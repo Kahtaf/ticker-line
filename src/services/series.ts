@@ -173,26 +173,27 @@ export async function loadSeries(
 
   if (cached.state === "stale") {
     if (cached.refreshAllowed) {
-      const backgroundRefresh = refresh(options, parts).catch(
-        async (error: unknown) => {
-          await options.cache.markRetryBackoff(
-            parts,
-            cached.record,
-            defaultFreshnessPolicy.evaluate({
-              timeframe: options.request.timeframe,
-              assetType: cached.record.series.assetType,
-              now: options.now,
-            }).retryBackoffSeconds,
-            options.now,
-          );
-          options.logger.warn("market_data_background_refresh_failed", {
-            requestId: options.requestId,
-            ticker: options.request.ticker,
+      const backgroundRefresh = refresh(
+        { ...options, signal: new AbortController().signal },
+        parts,
+      ).catch(async (error: unknown) => {
+        await options.cache.markRetryBackoff(
+          parts,
+          cached.record,
+          defaultFreshnessPolicy.evaluate({
             timeframe: options.request.timeframe,
-            errorType: error instanceof Error ? error.name : "UnknownError",
-          });
-        },
-      );
+            assetType: cached.record.series.assetType,
+            now: options.now,
+          }).retryBackoffSeconds,
+          options.now,
+        );
+        options.logger.warn("market_data_background_refresh_failed", {
+          requestId: options.requestId,
+          ticker: options.request.ticker,
+          timeframe: options.request.timeframe,
+          errorType: error instanceof Error ? error.name : "UnknownError",
+        });
+      });
       options.waitUntil(backgroundRefresh);
     }
     return fromRecord(cached.record, options.request, "STALE", options.now);
