@@ -47,7 +47,7 @@ export function createResponseCacheKey(
   url.searchParams.set("ticker", request.ticker);
   url.searchParams.set("timeframe", request.timeframe);
   url.searchParams.set("theme", request.theme);
-  url.searchParams.set("color", request.color);
+  url.searchParams.set("fill", String(request.fill));
   url.searchParams.set("format", request.format);
   return new Request(url, { method: "GET" });
 }

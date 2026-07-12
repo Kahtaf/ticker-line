@@ -356,8 +356,8 @@ export type Timeframe = (typeof TIMEFRAMES)[number]
 export const THEMES = ['light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
-export const COLORS = ['auto', 'green', 'red', 'blue', 'gray'] as const
-export type Color = (typeof COLORS)[number]
+export const FILLS = ['false', 'true'] as const
+export type FillValue = (typeof FILLS)[number]
 
 export const FORMATS = ['svg', 'json'] as const
 export type OutputFormat = (typeof FORMATS)[number]
@@ -366,7 +366,7 @@ export type CanonicalSparklineRequest = Readonly<{
   ticker: string
   timeframe: Timeframe
   theme: Theme
-  color: Color
+  fill: boolean
   format: OutputFormat
 }>
 
@@ -466,7 +466,7 @@ Validate the raw query as a record before applying defaults:
 - Trim ticker, then validate length and allowed characters before uppercasing.
 - Permit only an explicit conservative ticker character set such as ASCII letters, digits, `.`, `-`, `^`, `=`, and `_`; revise only from tested provider requirements.
 - Reject control characters, percent-decoded separators, empty values, and overlong URLs.
-- Treat documented enum values as lowercase. Accept `color` case-insensitively and normalize it because the PRD explicitly makes color casing canonical; keep `timeframe`, `theme`, and `format` lowercase-only.
+- Treat documented enum values as lowercase. Accept only literal `false` or `true` for `fill`; keep `timeframe`, `theme`, `fill`, and `format` lowercase-only.
 - Apply defaults only after the submitted values are valid.
 
 The returned `CanonicalSparklineRequest` is the only request shape allowed below the HTTP layer.
@@ -476,7 +476,7 @@ The returned `CanonicalSparklineRequest` is the only request shape allowed below
 Use a stable internal serialization rather than the incoming URL:
 
 ```text
-ticker=AAPL&timeframe=1m&theme=light&color=auto&format=svg
+ticker=AAPL&timeframe=1m&theme=light&fill=false&format=svg
 ```
 
 Fields always appear in that order and always include defaults. Do not use `JSON.stringify` on an object as a cache key contract.
@@ -534,7 +534,7 @@ Key format:
 
 ```text
 https://cache.internal/render/{rendererVersion}/{normalizationVersion}?
-  ticker=AAPL&timeframe=1m&theme=light&color=auto&format=svg
+  ticker=AAPL&timeframe=1m&theme=light&fill=false&format=svg
 ```
 
 Construct the internal URL programmatically without line breaks. It must contain no secret or provider credential. SVG and JSON are separate keys. Renderer and normalization version changes roll forward without a purge.
@@ -659,7 +659,7 @@ These directives benefit browsers and compatible intermediaries. They do not cha
 
 ### 10.5 SVG fallback cache policy
 
-Fallback SVGs are deterministic by public error code and fallback-renderer version. Do not key them by ticker, message, request ID, theme, or color.
+Fallback SVGs are deterministic by public error code and fallback-renderer version. Do not key them by ticker, message, request ID, theme, or fill.
 
 Suggested cache behavior:
 
@@ -798,7 +798,7 @@ export type RenderOptions = Readonly<{
   width: 160
   height: 48
   theme: Theme
-  color: Color
+  fill: boolean
   ticker: string
   timeframe: Timeframe
 }>
@@ -826,6 +826,9 @@ export function renderErrorSparkline(code: PublicErrorCode): string
 - Fixed visual padding, declared as renderer constants.
 - Map timestamps to x coordinates, not array indexes, so gaps remain visible. If visual tests show excessive compression from market closures, revisit this explicitly rather than silently switching semantics.
 - Map price extrema to the drawable y range.
+- Use the first accepted close as a horizontal reference baseline across the drawable width.
+- Split line segments exactly where they cross the baseline. Render portions above it in the controlled positive green and portions below it in the controlled negative red.
+- When `fill=true`, fill each positive or negative region between the price line and the baseline with the matching controlled color and fixed opacity. Do not fill to the bottom of the SVG.
 - Expand a flat series by a deterministic synthetic y extent so it renders as a centered horizontal line.
 - Render a single point as a short centered horizontal path segment so it remains visible without adding a new SVG element type.
 - Round output coordinates to a fixed precision, initially two decimal places.
@@ -841,7 +844,7 @@ export function renderErrorSparkline(code: PublicErrorCode): string
 - A `<title>` containing `Sparkline unavailable: {CODE}`.
 - A generic `<desc>` containing no ticker, provider message, or request ID.
 
-It ignores requested theme and color. Its only cache dimensions are fallback-renderer version and public error code. It must never call the market-data renderer with invented price points.
+It ignores requested theme and fill. Its only cache dimensions are fallback-renderer version and public error code. It must never call the market-data renderer with invented price points.
 
 ### Safe SVG output
 
@@ -850,7 +853,7 @@ The successful-chart output allowlist is `<svg>`, `<path>`, `<title>`, and `<des
 Use controlled attributes only:
 
 - `xmlns`, `viewBox`, `width`, `height`, and accessibility attributes on `<svg>`.
-- `d`, `fill`, `stroke`, `stroke-width`, `stroke-linecap`, and `stroke-linejoin` on `<path>`.
+- `d`, `fill`, `fill-opacity`, `stroke`, `stroke-width`, `stroke-dasharray`, `stroke-linecap`, and `stroke-linejoin` on `<path>`.
 - `x`, `y`, `fill`, `font-family`, `font-size`, and `text-anchor` on the fallback `<text>`.
 
 The same normalized series, render options, and renderer version must yield byte-identical SVG.
@@ -933,7 +936,7 @@ Use `fast-check` properties for:
 
 - Canonicalization idempotence.
 - Equivalent valid requests producing identical cache keys.
-- Distinct format/theme/color values not colliding.
+- Distinct format/theme/fill values not colliding.
 - Sampling output remaining sorted, bounded, finite, and drawn from input.
 - Renderer output never containing `NaN`, `Infinity`, `-0`, scripts, event attributes, or unescaped supplied ticker text.
 - Arbitrary finite series rendering without throwing.
@@ -982,7 +985,7 @@ Cover:
 Maintain SVG snapshots for:
 
 - Rising, falling, flat, single-point, sparse, gapped, volatile, negative-value, large-value, and mixed-invalid series.
-- Every theme and automatic movement color.
+- Every theme and fill mode, including a series that crosses the baseline repeatedly and therefore uses both directional colors.
 - XML-sensitive ticker text at the renderer boundary.
 - Every fallback error code, including legibility of the longest code at `160 × 48`.
 

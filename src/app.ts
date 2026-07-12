@@ -112,7 +112,7 @@ async function renderSuccess(
     width: 160,
     height: 48,
     theme: request.theme,
-    color: request.color,
+    fill: request.fill,
     ticker: request.ticker,
     timeframe: request.timeframe,
   });

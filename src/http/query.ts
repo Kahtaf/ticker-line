@@ -1,7 +1,7 @@
 import { InvalidRequestError } from "../domain/errors";
 import {
-  COLORS,
   DEFAULT_SPARKLINE_OPTIONS,
+  FILLS,
   FORMATS,
   THEMES,
   type CanonicalSparklineRequest,
@@ -13,7 +13,7 @@ const ALLOWED_PARAMETERS = new Set([
   "ticker",
   "timeframe",
   "theme",
-  "color",
+  "fill",
   "format",
 ]);
 const TICKER_PATTERN = /^[A-Za-z0-9.^=_-]+$/;
@@ -94,13 +94,13 @@ export function parseSparklineRequest(
     DEFAULT_SPARKLINE_OPTIONS.theme,
     "theme",
   );
-  const rawColor = oneValue(url, "color");
-  const color = enumValue(
-    rawColor?.toLowerCase(),
-    COLORS,
-    DEFAULT_SPARKLINE_OPTIONS.color,
-    "color",
-  );
+  const fill =
+    enumValue(
+      oneValue(url, "fill"),
+      FILLS,
+      DEFAULT_SPARKLINE_OPTIONS.fill ? "true" : "false",
+      "fill",
+    ) === "true";
   const format = enumValue(
     oneValue(url, "format"),
     FORMATS,
@@ -112,7 +112,7 @@ export function parseSparklineRequest(
     ticker: tickerValue.toUpperCase(),
     timeframe,
     theme,
-    color,
+    fill,
     format,
   };
 }

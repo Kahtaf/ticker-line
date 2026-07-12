@@ -66,7 +66,7 @@ The product should reduce that work to one stable URL while remaining inexpensiv
 ### Core jobs to be done
 
 - “Give me an embeddable chart for AAPL over the last month.”
-- “Give me the same chart in a dark UI with a specific size and line color.”
+- “Give me the same chart in a dark UI, with an optional directional area fill.”
 - “Let me inspect when the underlying data was updated and which symbol was resolved.”
 - “Continue returning a recent chart during a temporary provider outage.”
 
@@ -136,15 +136,15 @@ curl "https://api.example.com/v1/sparkline?ticker=BTC-USD&timeframe=7d&format=js
 | --- | --- | --- | --- | --- |
 | `ticker` | Yes | Provider-supported symbol | — | Trimmed and normalized to uppercase where safe; examples: `AAPL`, `BTC-USD`, `VOD.L`. |
 | `timeframe` | No | `1d`, `7d`, `1m`, `3m`, `1y`, `5y` | `1m` | Calendar range; the server chooses a suitable sampling interval. |
-| `theme` | No | `light`, `dark` | `light` | Affects the default background/fill and neutral color. |
-| `color` | No | `auto`, `green`, `red`, `blue`, `gray` | `auto` | `auto` selects positive/negative/flat colors from first-to-last movement. Named presets keep URLs readable and cache cardinality bounded. |
+| `theme` | No | `light`, `dark` | `light` | Selects accessible positive, negative, fill, and reference-line colors. |
+| `fill` | No | `false`, `true` | `false` | When enabled, fills each positive or negative region between the price line and the first-close reference line. |
 | `format` | No | `svg`, `json` | `svg` | `svg` returns the image; `json` returns an envelope. |
 
 The SVG always uses a `160 × 48` intrinsic size and a matching `viewBox`. Because SVG scales without loss, consumers control display size through normal HTML attributes or CSS instead of `width` and `height` API parameters. This avoids two high-cardinality cache dimensions.
 
-Potential parameters such as arbitrary hex colors, `width`, `height`, `stroke`, `fill`, `exchange`, `currency`, `provider`, arbitrary start/end dates, and exact sampling intervals are intentionally deferred. `theme=auto` is also deferred because color inheritance and media-query behavior vary across SVG embedding contexts. If ticker ambiguity proves common, `exchange` should be the first addition.
+Potential parameters such as arbitrary hex colors, fill opacity/style, `width`, `height`, `stroke`, `exchange`, `currency`, `provider`, arbitrary start/end dates, and exact sampling intervals are intentionally deferred. `theme=auto` is also deferred because color inheritance and media-query behavior vary across SVG embedding contexts. If ticker ambiguity proves common, `exchange` should be the first addition.
 
-Parameter names and enum values are lowercase. Unsupported parameters and values return `400` rather than being ignored. The service canonicalizes ticker casing, parameter order, omitted defaults, and color casing internally so equivalent requests share one cache entry.
+Parameter names and enum values are lowercase. Unsupported parameters and values return `400` rather than being ignored. The service canonicalizes ticker casing, parameter order, omitted defaults, and the boolean fill value internally so equivalent requests share one cache entry.
 
 ### Successful SVG response
 
@@ -226,7 +226,7 @@ The fallback SVG must:
 - include the error code in `<title>` and a generic explanation in `<desc>`;
 - use only generated `<svg>`, `<path>`, `<text>`, `<title>`, and `<desc>` elements;
 - never include the requested ticker, provider error, stack trace, or request ID in its body;
-- ignore requested theme and color so each public error code has one deterministic representation;
+- ignore requested theme and fill so each public error code has one deterministic representation;
 - set `X-Error-Code` and `X-Error-Status` so non-image clients can detect the underlying failure;
 - be deterministic for the same public error code and fallback-renderer version.
 
@@ -325,7 +325,7 @@ Caching is a product requirement, not only a cost optimization. The design shoul
 
 - Cache the complete SVG or JSON response at Cloudflare's edge.
 - Build the key from a versioned renderer ID plus canonical, allowlisted parameters in a fixed order.
-- Normalize equivalent values before keying: ticker casing, default parameters, numeric formatting, and color casing.
+- Normalize equivalent values before keying: ticker casing, default parameters, numeric formatting, and fill booleans.
 - Ignore unknown parameters after rejecting them; do not let them fragment the cache.
 - Give SVG and JSON separate variants.
 - Return `ETag` and support conditional responses.
@@ -419,10 +419,10 @@ The renderer should be a small, testable pure function from normalized points an
 Direction for the default style:
 
 - Minimal Apple Stocks/Yahoo Finance-inspired line treatment without copying brand assets.
-- No axes, grid, labels, tooltip, or logo inside the chart.
-- Green for positive, red for negative, neutral gray for flat, with accessible light/dark presets.
+- No axes, grid, labels, tooltip, or logo inside the chart, apart from one subtle horizontal reference at the first close.
+- Green at or above the first-close reference and red below it, splitting exactly at crossings, with accessible light/dark presets.
 - Rounded line caps and joins.
-- Optional restrained area fade.
+- Optional restrained positive/negative area fill between the price and reference lines.
 - Crisp output at small sizes and no reliance on a specific device pixel ratio.
 
 Required rendering fixtures should include rising, falling, flat, single-point, sparse, gapped, volatile, negative-value, very large-value, and invalid-input series. Golden SVG snapshots plus rasterized visual diffs should protect output stability.
@@ -497,7 +497,7 @@ Potential name, visual identity, domain, and attribution placement remain open d
 ## 15. API evolution and compatibility
 
 - Version the public route (`/v1`) from day one.
-- Treat parameter semantics, response fields, error codes, default colors, and rendering geometry as compatibility-sensitive.
+- Treat parameter semantics, response fields, error codes, directional colors, fill behavior, reference baseline, and rendering geometry as compatibility-sensitive.
 - Add optional JSON fields freely; do not rename or remove existing fields within v1.
 - Announce rendering changes and use a renderer-version cache key.
 - Reserve API-key authentication for a future header such as `Authorization: Bearer ...` or `X-API-Key`; never require secrets in embeddable query strings.
@@ -572,9 +572,8 @@ Avoid vanity metrics that require invasive tracking. The website can use privacy
 ### Product decisions
 
 1. What is the name, domain, and brand posture: developer utility, polished finance product, or infrastructure primitive?
-2. Should the default line color reflect first-to-last movement, or remain neutral unless explicitly styled?
-3. What freshness language can we responsibly promise: “near real time,” “delayed,” or timestamp-only?
-4. Is attribution shown inside the SVG, in documentation, or both if a provider requires it?
+2. What freshness language can we responsibly promise: “near real time,” “delayed,” or timestamp-only?
+3. Is attribution shown inside the SVG, in documentation, or both if a provider requires it?
 
 ### Data decisions
 

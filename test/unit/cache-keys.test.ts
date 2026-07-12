@@ -26,13 +26,13 @@ describe("cache keys", () => {
         ticker: "AAPL",
         timeframe: "1m",
         theme: "light",
-        color: "auto",
+        fill: false,
         format: "svg",
       },
       { rendererVersion: "v1", normalizationVersion: "v1" },
     );
     expect(key.url).toBe(
-      "https://cache.internal/render/v1/v1?ticker=AAPL&timeframe=1m&theme=light&color=auto&format=svg",
+      "https://cache.internal/render/v1/v1?ticker=AAPL&timeframe=1m&theme=light&fill=false&format=svg",
     );
   });
 

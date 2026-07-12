@@ -1,18 +1,35 @@
-import type { MarketPoint, MarketSeries } from "../domain/market-series";
-import type { Color, Theme } from "../domain/request";
-import type { Timeframe } from "../domain/timeframe";
 import type { PublicErrorCode } from "../domain/errors";
-import { createSparklinePath } from "./path";
+import type { MarketPoint, MarketSeries } from "../domain/market-series";
+import type { Theme } from "../domain/request";
+import type { Timeframe } from "../domain/timeframe";
+import {
+  coordinatesToPath,
+  createSparklineGeometry,
+  formatCoordinate,
+  type SparklineCoordinate,
+} from "./path";
 import { sampleMarketPoints } from "./sampling";
-import { resolveStroke, SVG_HEIGHT, SVG_WIDTH } from "./styles";
+import {
+  resolveBaselineColor,
+  resolveToneColor,
+  SVG_HEIGHT,
+  SVG_PADDING_X,
+  SVG_WIDTH,
+  type ChartTone,
+} from "./styles";
 
 export type RenderOptions = Readonly<{
   width: 160;
   height: 48;
   theme: Theme;
-  color: Color;
+  fill: boolean;
   ticker: string;
   timeframe: Timeframe;
+}>;
+
+type ToneRun = Readonly<{
+  tone: ChartTone;
+  points: readonly SparklineCoordinate[];
 }>;
 
 export function escapeXmlText(value: string): string {
@@ -37,6 +54,79 @@ function acceptedPoints(
     .map(({ point }) => point);
 }
 
+function toneForSide(side: number): ChartTone {
+  return side < 0 ? "red" : "green";
+}
+
+function splitAtBaseline(
+  coordinates: readonly SparklineCoordinate[],
+  baselineClose: number,
+  baselineY: number,
+): readonly ToneRun[] {
+  const runs: Array<{ tone: ChartTone; points: SparklineCoordinate[] }> = [];
+
+  const addSegment = (
+    tone: ChartTone,
+    start: SparklineCoordinate,
+    end: SparklineCoordinate,
+  ): void => {
+    const current = runs.at(-1);
+    if (current?.tone === tone) {
+      current.points.push(end);
+      return;
+    }
+    runs.push({ tone, points: [start, end] });
+  };
+
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const start = coordinates[index - 1];
+    const end = coordinates[index];
+    if (start === undefined || end === undefined) continue;
+    const startSide = Math.sign(start.close - baselineClose);
+    const endSide = Math.sign(end.close - baselineClose);
+
+    if (startSide !== 0 && endSide !== 0 && startSide !== endSide) {
+      const scale = Math.max(
+        Math.abs(start.close),
+        Math.abs(end.close),
+        Math.abs(baselineClose),
+        Number.MIN_VALUE,
+      );
+      const startDistance = Math.abs(
+        start.close / scale - baselineClose / scale,
+      );
+      const endDistance = Math.abs(end.close / scale - baselineClose / scale);
+      const distance = startDistance + endDistance;
+      const ratio = distance === 0 ? 0.5 : startDistance / distance;
+      const crossing: SparklineCoordinate = {
+        x: start.x + (end.x - start.x) * ratio,
+        y: baselineY,
+        close: baselineClose,
+      };
+      addSegment(toneForSide(startSide), start, crossing);
+      addSegment(toneForSide(endSide), crossing, end);
+      continue;
+    }
+
+    addSegment(toneForSide(startSide === 0 ? endSide : startSide), start, end);
+  }
+
+  return runs;
+}
+
+function createAreaPath(run: ToneRun, baselineY: number): string | undefined {
+  if (run.points.every((point) => point.y === baselineY)) return undefined;
+  const first = run.points[0];
+  const last = run.points.at(-1);
+  if (first === undefined || last === undefined) return undefined;
+  const line = run.points
+    .map(
+      (point) => `L ${formatCoordinate(point.x)} ${formatCoordinate(point.y)}`,
+    )
+    .join(" ");
+  return `M ${formatCoordinate(first.x)} ${formatCoordinate(baselineY)} ${line} L ${formatCoordinate(last.x)} ${formatCoordinate(baselineY)} Z`;
+}
+
 export function renderSparkline(
   points: readonly MarketPoint[],
   options: RenderOptions,
@@ -45,27 +135,45 @@ export function renderSparkline(
     throw new RangeError("Sparkline dimensions must be 160 by 48.");
   }
   const valid = acceptedPoints(points);
-  if (valid.length === 0)
+  if (valid.length === 0) {
     throw new RangeError("At least one finite market point is required.");
+  }
   const sampled = sampleMarketPoints(valid);
   const first = sampled[0];
   const last = sampled.at(-1);
-  if (first === undefined || last === undefined)
+  if (first === undefined || last === undefined) {
     throw new RangeError("At least one finite market point is required.");
-  const stroke = resolveStroke(
-    options.theme,
-    options.color,
-    first.close,
-    last.close,
-  );
+  }
   const title = escapeXmlText(
     `${options.ticker} ${options.timeframe} price sparkline`,
   );
   const description = escapeXmlText(
     `Price movement for ${options.ticker} over ${options.timeframe}, from ${first.close} to ${last.close}.`,
   );
-  const path = createSparklinePath(sampled);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48" role="img"><title>${title}</title><desc>${description}</desc><path d="${path}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const geometry = createSparklineGeometry(sampled);
+  const runs = splitAtBaseline(
+    geometry.coordinates,
+    geometry.baselineClose,
+    geometry.baselineY,
+  );
+  const areas = options.fill
+    ? runs
+        .map((run) => {
+          const path = createAreaPath(run, geometry.baselineY);
+          return path === undefined
+            ? ""
+            : `<path d="${path}" fill="${resolveToneColor(options.theme, run.tone)}" fill-opacity="0.16" stroke="none"/>`;
+        })
+        .join("")
+    : "";
+  const baseline = `<path d="M ${SVG_PADDING_X} ${formatCoordinate(geometry.baselineY)} L ${SVG_WIDTH - SVG_PADDING_X} ${formatCoordinate(geometry.baselineY)}" fill="none" stroke="${resolveBaselineColor(options.theme)}" stroke-width="1" stroke-dasharray="2 3"/>`;
+  const lines = runs
+    .map(
+      (run) =>
+        `<path d="${coordinatesToPath(run.points)}" fill="none" stroke="${resolveToneColor(options.theme, run.tone)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    )
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48" role="img"><title>${title}</title><desc>${description}</desc>${areas}${baseline}${lines}</svg>`;
 }
 
 export function renderErrorSparkline(code: PublicErrorCode): string {

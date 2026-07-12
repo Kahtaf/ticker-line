@@ -13,7 +13,7 @@ const options = {
   width: 160,
   height: 48,
   theme: "light",
-  color: "auto",
+  fill: false,
   ticker: "AAPL",
   timeframe: "1m",
 } as const;
@@ -47,7 +47,7 @@ describe("sparkline renderer", () => {
     ).toMatchSnapshot();
   });
 
-  it("renders deterministic rising, falling, and flat colors", () => {
+  it("colors each segment from its position against the first close", () => {
     const rising = [
       { timestamp: 0, close: 1 },
       { timestamp: 1, close: 2 },
@@ -63,10 +63,29 @@ describe("sparkline renderer", () => {
         rising.map((point) => ({ ...point, close: 4 })),
         options,
       ),
-    ).toContain('stroke="#6b7280"');
+    ).toContain('stroke="#17854b"');
+    const mixed = renderSparkline(
+      [10, 8, 12].map((close, timestamp) => ({ timestamp, close })),
+      options,
+    );
+    expect(mixed).toContain('stroke="#17854b"');
+    expect(mixed).toContain('stroke="#d13c43"');
     expect(renderSparkline(rising, options)).toBe(
       renderSparkline(rising, options),
     );
+  });
+
+  it("always renders a first-close reference and optionally fills to it", () => {
+    const points = [10, 8, 12].map((close, timestamp) => ({
+      timestamp,
+      close,
+    }));
+    const lineOnly = renderSparkline(points, options);
+    const filled = renderSparkline(points, { ...options, fill: true });
+    expect(lineOnly).toContain('stroke-dasharray="2 3"');
+    expect(lineOnly).not.toContain('fill-opacity="0.16"');
+    expect(filled).toContain('fill="#17854b" fill-opacity="0.16"');
+    expect(filled).toContain('fill="#d13c43" fill-opacity="0.16"');
   });
 
   it("uses timestamp geometry and handles gaps and a single point", () => {
@@ -98,9 +117,11 @@ describe("sparkline renderer", () => {
 
   it("renders only the successful SVG allowlist", () => {
     const svg = renderSparkline([{ timestamp: 1, close: -5 }], options);
+    const tags =
+      svg.match(/<\/?([a-z]+)/g)?.map((tag) => tag.replace(/[</>]/g, "")) ?? [];
     expect(
-      svg.match(/<\/?([a-z]+)/g)?.map((tag) => tag.replace(/[</>]/g, "")),
-    ).toEqual(["svg", "title", "title", "desc", "desc", "path", "svg"]);
+      tags.every((tag) => ["svg", "title", "desc", "path"].includes(tag)),
+    ).toBe(true);
   });
 
   it("renders one deterministic neutral fallback per public code", () => {

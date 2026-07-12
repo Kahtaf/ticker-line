@@ -16,7 +16,7 @@ describe("rasterized renderer output", () => {
         width: 160,
         height: 48,
         theme: "dark",
-        color: "auto",
+        fill: true,
         ticker: "TEST",
         timeframe: "1m",
       },

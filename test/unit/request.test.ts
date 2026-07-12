@@ -4,6 +4,7 @@ import {
   serializeCanonicalRequest,
   type CanonicalSparklineRequest,
 } from "../../src/domain/request";
+import { parseSparklineRequest } from "../../src/http/query";
 
 describe("canonical request representation", () => {
   it("includes defaults in a fixed order", () => {
@@ -12,7 +13,7 @@ describe("canonical request representation", () => {
       ...DEFAULT_SPARKLINE_OPTIONS,
     };
     expect(serializeCanonicalRequest(request)).toBe(
-      "ticker=AAPL&timeframe=1m&theme=light&color=auto&format=svg",
+      "ticker=AAPL&timeframe=1m&theme=light&fill=false&format=svg",
     );
   });
 
@@ -22,9 +23,35 @@ describe("canonical request representation", () => {
         ticker: "BTC/USD",
         timeframe: "7d",
         theme: "dark",
-        color: "blue",
+        fill: true,
         format: "json",
       }),
-    ).toBe("ticker=BTC%2FUSD&timeframe=7d&theme=dark&color=blue&format=json");
+    ).toBe("ticker=BTC%2FUSD&timeframe=7d&theme=dark&fill=true&format=json");
+  });
+
+  it("parses the fill flag and defaults it off", () => {
+    expect(
+      parseSparklineRequest(
+        new Request("https://example.test/v1/sparkline?ticker=AAPL"),
+      ).fill,
+    ).toBe(false);
+    expect(
+      parseSparklineRequest(
+        new Request("https://example.test/v1/sparkline?ticker=AAPL&fill=true"),
+      ).fill,
+    ).toBe(true);
+  });
+
+  it("rejects the removed color option and non-boolean fills", () => {
+    expect(() =>
+      parseSparklineRequest(
+        new Request("https://example.test/v1/sparkline?ticker=AAPL&color=blue"),
+      ),
+    ).toThrow("Unknown parameter 'color'.");
+    expect(() =>
+      parseSparklineRequest(
+        new Request("https://example.test/v1/sparkline?ticker=AAPL&fill=1"),
+      ),
+    ).toThrow("Parameter 'fill' has an unsupported value.");
   });
 });
