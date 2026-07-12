@@ -8,7 +8,7 @@
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/v1/*", "/health"],
+    "run_worker_first": ["/v1/*", "/health*"],
   },
   "kv_namespaces": [
     {
