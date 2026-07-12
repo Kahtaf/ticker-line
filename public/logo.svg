@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 32" role="img" aria-labelledby="title">
+  <title id="title">Starklines</title>
+  <path d="M3 21.5 9 15l5 4 7-10 8 4.5" fill="none" stroke="#2c8c57" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="42" y="22" fill="#18201b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="18" font-weight="650" letter-spacing="-.5">Starklines</text>
+</svg>

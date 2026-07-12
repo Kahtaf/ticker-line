@@ -1,0 +1,372 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const description =
+  'A small stock and crypto sparkline API. Get a cacheable SVG market chart from one URL, with no SDK or client-side charting library.'
+
+const directUrl = '/v1/sparkline?ticker=AAPL&timeframe=1m'
+const htmlExample = `<img
+  src="${directUrl}"
+  alt="AAPL price over one month"
+  width="160"
+  height="48"
+/>`
+const markdownExample = `![AAPL price over one month](${directUrl})`
+
+const parameters = [
+  {
+    name: 'ticker',
+    required: 'required',
+    values: 'A provider-supported symbol',
+    fallback: 'none',
+    detail: 'Trimmed and normalized to uppercase where safe. Try AAPL, BTC-USD, or VOD.L.',
+  },
+  {
+    name: 'timeframe',
+    required: 'optional',
+    values: '1d, 7d, 1m, 3m, 1y, 5y',
+    fallback: '1m',
+    detail: 'The visible calendar range. Starklines selects a suitable source interval.',
+  },
+  {
+    name: 'theme',
+    required: 'optional',
+    values: 'light, dark',
+    fallback: 'light',
+    detail: 'Sets the chart background, fill, and neutral colors.',
+  },
+  {
+    name: 'color',
+    required: 'optional',
+    values: 'auto, green, red, blue, gray',
+    fallback: 'auto',
+    detail: 'Auto derives direction from the first and last valid close.',
+  },
+  {
+    name: 'format',
+    required: 'optional',
+    values: 'svg, json',
+    fallback: 'svg',
+    detail: 'SVG is made for embeds. JSON includes metadata and semantic error statuses.',
+  },
+]
+
+const errors = [
+  ['400', 'INVALID_REQUEST', 'A required parameter is missing or a value is unsupported.'],
+  ['404', 'TICKER_NOT_FOUND', 'No supported symbol resolved.'],
+  ['422', 'INSUFFICIENT_DATA', 'The symbol resolved but the range cannot produce a chart.'],
+  ['429', 'RATE_LIMITED', 'The fair-use traffic limit was reached.'],
+  ['502', 'PROVIDER_ERROR', 'The upstream failed and no acceptable stale copy exists.'],
+  ['503', 'SERVICE_UNAVAILABLE', 'The service is temporarily unable to fulfill the request.'],
+]
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebAPI',
+  name: 'Starklines',
+  description,
+  documentation: '/',
+  provider: {
+    '@type': 'Organization',
+    name: 'Starklines',
+  },
+  termsOfService: '/#terms',
+}
+---
+
+<BaseLayout title="Starklines | Stock and crypto sparkline API" description={description}>
+  <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+
+  <header class="site-header">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="Starklines home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M3 21.5 9 15l5 4 7-10 8 4.5" />
+        </svg>
+        <span>Starklines</span>
+      </a>
+      <div class="nav-links">
+        <a href="#builder">Builder</a>
+        <a href="#reference">Reference</a>
+        <a href="#freshness">Freshness</a>
+        <a class="nav-cta" href="#quickstart">Use the API</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Stock and crypto sparkline API</p>
+        <h1>Market charts,<br /> in one URL.</h1>
+        <p class="hero-summary">Cacheable SVG sparklines for websites, READMEs, bots, and small apps. No SDK required.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#builder">Build a request</a>
+          <a class="button button-secondary" href="#quickstart">Read the docs</a>
+        </div>
+      </div>
+
+      <figure class="hero-visual">
+        <div class="chart-stage">
+          <div class="chart-meta">
+            <span>AAPL</span>
+            <span>1 month</span>
+          </div>
+          <img
+            src={directUrl}
+            width="160"
+            height="48"
+            alt="Live AAPL price sparkline over one month"
+            loading="eager"
+            fetchpriority="high"
+          />
+          <code>{directUrl}</code>
+        </div>
+        <figcaption>Rendered by the endpoint above. The image is the product.</figcaption>
+      </figure>
+    </section>
+
+    <section class="quickstart section shell" id="quickstart" aria-labelledby="quickstart-title">
+      <div class="section-heading compact-heading">
+        <h2 id="quickstart-title">Paste it where images work.</h2>
+        <p>Start with a direct URL. Use HTML for explicit dimensions or Markdown for documentation.</p>
+      </div>
+      <div class="example-switcher" data-copy-group>
+        <div class="example-tabs" role="tablist" aria-label="Code examples">
+          <button type="button" role="tab" aria-selected="true" aria-controls="example-html" id="tab-html" data-example-tab="html">HTML</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="example-markdown" id="tab-markdown" data-example-tab="markdown" tabindex="-1">Markdown</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="example-url" id="tab-url" data-example-tab="url" tabindex="-1">Direct URL</button>
+        </div>
+        <div class="code-panel" id="example-html" role="tabpanel" aria-labelledby="tab-html" data-example-panel="html">
+          <pre><code>{htmlExample}</code></pre>
+          <button class="copy-button" type="button" data-copy={htmlExample}>Copy HTML</button>
+        </div>
+        <div class="code-panel" id="example-markdown" role="tabpanel" aria-labelledby="tab-markdown" data-example-panel="markdown" hidden>
+          <pre><code>{markdownExample}</code></pre>
+          <button class="copy-button" type="button" data-copy={markdownExample}>Copy Markdown</button>
+        </div>
+        <div class="code-panel" id="example-url" role="tabpanel" aria-labelledby="tab-url" data-example-panel="url" hidden>
+          <pre><code>{directUrl}</code></pre>
+          <button class="copy-button" type="button" data-copy={directUrl}>Copy URL</button>
+        </div>
+        <p class="copy-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="builder-section section" id="builder" aria-labelledby="builder-title">
+      <div class="shell builder-shell">
+        <div class="builder-intro">
+          <h2 id="builder-title">Compose a live request.</h2>
+          <p>Change an allowlisted option. The preview updates after a short pause and always uses a same-origin endpoint.</p>
+          <p class="builder-note">SVG errors remain visible as gray fallback images. Choose JSON when your code needs semantic HTTP status codes.</p>
+        </div>
+
+        <form class="request-builder" data-request-builder novalidate>
+          <div class="builder-fields">
+            <label>
+              <span>Ticker</span>
+              <input name="ticker" value="AAPL" autocomplete="off" spellcheck="false" maxlength="32" aria-describedby="ticker-help ticker-error" />
+              <small id="ticker-help">Letters, numbers, periods, slashes, carets, colons, and hyphens.</small>
+              <small class="field-error" id="ticker-error" data-ticker-error aria-live="polite"></small>
+            </label>
+            <label>
+              <span>Timeframe</span>
+              <select name="timeframe">
+                <option value="1d">1 day</option>
+                <option value="7d">7 days</option>
+                <option value="1m" selected>1 month</option>
+                <option value="3m">3 months</option>
+                <option value="1y">1 year</option>
+                <option value="5y">5 years</option>
+              </select>
+            </label>
+            <label>
+              <span>Theme</span>
+              <select name="theme">
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label>
+              <span>Color</span>
+              <select name="color">
+                <option value="auto" selected>Auto</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="gray">Gray</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="live-output">
+            <div class="preview-frame" data-preview-state="ready">
+              <div class="preview-status" aria-live="polite" data-preview-status>Live preview</div>
+              <img
+                data-preview-image
+                src={directUrl}
+                width="160"
+                height="48"
+                alt="AAPL price over one month"
+              />
+              <div class="preview-skeleton" aria-hidden="true"></div>
+              <p class="preview-error" data-preview-error role="alert">The preview could not load. Try the URL directly or change the symbol.</p>
+            </div>
+            <div class="generated-url">
+              <code data-generated-url>{directUrl}</code>
+              <button class="copy-button" type="button" data-copy-generated>Copy URL</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="section shell" id="reference" aria-labelledby="reference-title">
+      <div class="section-heading">
+        <h2 id="reference-title">Five parameters. Stable by design.</h2>
+        <p>Unknown options fail validation, keeping typos visible and cache keys bounded.</p>
+      </div>
+
+      <div class="parameter-grid">
+        {parameters.map((parameter) => (
+          <article class:list={['parameter', parameter.name === 'ticker' && 'parameter-featured']}>
+            <div class="parameter-name">
+              <code>{parameter.name}</code>
+              <span>{parameter.required}</span>
+            </div>
+            <dl>
+              <div><dt>Values</dt><dd>{parameter.values}</dd></div>
+              <div><dt>Default</dt><dd>{parameter.fallback}</dd></div>
+            </dl>
+            <p>{parameter.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div class="response-reference">
+        <div>
+          <h3>SVG response</h3>
+          <p>Raw <code>image/svg+xml</code>, fixed at a <code>160 × 48</code> intrinsic size and safe to scale with CSS.</p>
+        </div>
+        <pre><code>HTTP/1.1 200 OK
+Content-Type: image/svg+xml; charset=utf-8
+X-Data-As-Of: 2026-07-12T19:45:00Z
+X-Cache: HIT</code></pre>
+        <div>
+          <h3>JSON response</h3>
+          <p>A flat envelope for clients that need the SVG plus data timing and optional currency metadata.</p>
+        </div>
+        <pre><code>{`{
+  "ticker": "AAPL",
+  "timeframe": "1m",
+  "currency": "USD",
+  "dataAsOf": "2026-07-12T19:45:00Z",
+  "svg": "<svg ...>...</svg>"
+}`}</code></pre>
+      </div>
+    </section>
+
+    <section class="errors-section section" id="errors" aria-labelledby="errors-title">
+      <div class="shell errors-layout">
+        <div class="errors-copy">
+          <h2 id="errors-title">Errors that still render.</h2>
+          <p>SVG mode returns HTTP 200 with a visible gray fallback, plus headers that preserve the underlying error.</p>
+          <img
+            src="/v1/sparkline?ticker=THIS_SYMBOL_SHOULD_NOT_EXIST&timeframe=1m"
+            width="160"
+            height="48"
+            loading="lazy"
+            alt="Example gray fallback sparkline for an unknown ticker"
+          />
+          <pre><code>X-Error-Code: TICKER_NOT_FOUND
+X-Error-Status: 404</code></pre>
+        </div>
+        <div class="error-list" role="list" aria-label="JSON error reference">
+          {errors.map(([status, code, meaning]) => (
+            <div class="error-item" role="listitem">
+              <span class="error-status">{status}</span>
+              <code>{code}</code>
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="freshness-section section shell" id="freshness" aria-labelledby="freshness-title">
+      <div class="freshness-copy">
+        <h2 id="freshness-title">Fresh where it matters.</h2>
+        <p>Refresh timing follows the chart range, source interval, asset type, and market session. Recent data updates often. Long history stays cached longer.</p>
+      </div>
+      <div
+        class="freshness-scale"
+        aria-label="Relative refresh frequency by timeframe"
+        tabindex="0"
+      >
+        <div><strong>1d</strong><span>Minutes while active</span></div>
+        <div><strong>7d</strong><span>Minutes while active</span></div>
+        <div><strong>1m / 3m</strong><span>Within the hour</span></div>
+        <div><strong>1y</strong><span>Every few hours</span></div>
+        <div><strong>5y</strong><span>Within a day</span></div>
+      </div>
+      <div class="freshness-notes">
+        <p><strong>Provisional last point.</strong> The latest candle may still be changing when the provider supplies it.</p>
+        <p><strong>Stale on outage.</strong> A recent cached chart may be served during a temporary upstream failure, within a defined stale window.</p>
+        <p><strong>Data timing.</strong> Inspect <code>X-Data-As-Of</code> or the JSON <code>dataAsOf</code> field. No real-time guarantee is implied.</p>
+      </div>
+    </section>
+
+    <section class="policy-section section" id="fair-use" aria-labelledby="policy-title">
+      <div class="shell policy-grid">
+        <div class="policy-lead">
+          <h2 id="policy-title">Free to call. Fair to share.</h2>
+          <p>No API key is required at launch. Cache responses, avoid needless polling, and keep traffic proportionate to a public utility.</p>
+        </div>
+        <article>
+          <h3>Fair use</h3>
+          <p>Automated scraping, cache bypassing, traffic amplification, and resale of the raw service may be rate limited or blocked.</p>
+        </article>
+        <article id="privacy">
+          <h3>Privacy</h3>
+          <p>Operational telemetry is limited to running the service. Full IP addresses and unnecessary user-agent details are not retained.</p>
+        </article>
+        <article id="terms">
+          <h3>Terms and data</h3>
+          <p>Charts are informational, may be delayed, and can contain errors. Data is provided through licensed upstream sources.</p>
+        </article>
+        <article id="disclaimer">
+          <h3>Not financial advice</h3>
+          <p>Starklines does not provide investment research, recommendations, trading signals, or a basis for financial decisions.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="closing section shell" aria-labelledby="closing-title">
+      <div>
+        <h2 id="closing-title">One URL. A useful line.</h2>
+        <p>Start with AAPL, switch the ticker, then ship the image.</p>
+      </div>
+      <a class="button button-primary" href="#builder">Build a request</a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <a class="brand" href="#top" aria-label="Starklines home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 21.5 9 15l5 4 7-10 8 4.5" /></svg>
+        <span>Starklines</span>
+      </a>
+      <p>Small market charts for the open web.</p>
+      <nav aria-label="Footer navigation">
+        <a href="#reference">API reference</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#terms">Terms</a>
+        <a href="mailto:hello@starklines.dev">Contact</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    import '../scripts/request-builder'
+  </script>
+</BaseLayout>
