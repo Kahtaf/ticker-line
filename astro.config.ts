@@ -1,11 +1,11 @@
-import { defineConfig } from 'astro/config'
+import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  srcDir: './site',
-  publicDir: './public',
-  outDir: './dist',
-  output: 'static',
+  srcDir: "./site",
+  publicDir: "./public",
+  outDir: "./dist",
+  output: "static",
   build: {
-    inlineStylesheets: 'auto',
+    inlineStylesheets: "auto",
   },
-})
+});

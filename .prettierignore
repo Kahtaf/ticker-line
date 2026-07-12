@@ -3,5 +3,7 @@ dist/
 .wrangler/
 coverage/
 node_modules/
+docs/**/*.md
+public/social-card.svg
 worker-configuration.d.ts
 test/golden/

@@ -8,13 +8,13 @@
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/v1/*", "/health"]
+    "run_worker_first": ["/v1/*", "/health"],
   },
   "kv_namespaces": [
     {
       "binding": "MARKET_DATA_CACHE",
-      "id": "ce84d17472274bbfaa6c77cd2ffcb9e5"
-    }
+      "id": "ce84d17472274bbfaa6c77cd2ffcb9e5",
+    },
   ],
   "ratelimits": [
     {
@@ -22,9 +22,9 @@
       "namespace_id": "7122601",
       "simple": {
         "limit": 300,
-        "period": 60
-      }
-    }
+        "period": 60,
+      },
+    },
   ],
   "vars": {
     "APP_ENV": "production",
@@ -33,11 +33,11 @@
     "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
     "CACHE_POLICY_VERSION": "v1",
     "NORMALIZATION_VERSION": "v1",
-    "RENDERER_VERSION": "v1"
+    "RENDERER_VERSION": "v1",
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1
+    "head_sampling_rate": 0.1,
   },
   "env": {
     "staging": {
@@ -45,8 +45,8 @@
       "kv_namespaces": [
         {
           "binding": "MARKET_DATA_CACHE",
-          "id": "7696e8d39f69457fb8df84f936b2df7d"
-        }
+          "id": "7696e8d39f69457fb8df84f936b2df7d",
+        },
       ],
       "ratelimits": [
         {
@@ -54,9 +54,9 @@
           "namespace_id": "7122602",
           "simple": {
             "limit": 300,
-            "period": 60
-          }
-        }
+            "period": 60,
+          },
+        },
       ],
       "vars": {
         "APP_ENV": "staging",
@@ -65,12 +65,12 @@
         "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
         "CACHE_POLICY_VERSION": "v1",
         "NORMALIZATION_VERSION": "v1",
-        "RENDERER_VERSION": "v1"
+        "RENDERER_VERSION": "v1",
       },
       "observability": {
         "enabled": true,
-        "head_sampling_rate": 1
-      }
-    }
-  }
+        "head_sampling_rate": 1,
+      },
+    },
+  },
 }
