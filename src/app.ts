@@ -222,6 +222,16 @@ export function createApp(
         withApiHeaders(response, requestId),
       );
     } catch (error) {
+      factories.logger.warn("request_failed", {
+        requestId,
+        method: c.req.method,
+        path: c.req.path,
+        errorType: error instanceof Error ? error.name : "UnknownError",
+        causeType:
+          error instanceof Error && error.cause instanceof Error
+            ? error.cause.name
+            : undefined,
+      });
       response = withApiHeaders(
         await createErrorResponse(toPublicError(error), mode, requestId),
         requestId,

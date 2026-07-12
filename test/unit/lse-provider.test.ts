@@ -70,6 +70,8 @@ describe("LseProvider", () => {
       context,
     );
     expect(requestedUrl?.searchParams.get("symbol")).toBe("BTC/USD");
+    expect(requestedUrl?.searchParams.get("start")).toBe("2026-07-01");
+    expect(requestedUrl?.searchParams.get("end")).toBe("2026-07-12");
     expect(requestedUrl?.pathname).toBe("/vault/candles");
     expect(series.resolvedTicker).toBe("BTC-USD");
     expect(series.assetType).toBe("crypto");

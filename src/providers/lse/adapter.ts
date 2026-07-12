@@ -193,8 +193,8 @@ function buildCandlesUrl(
   const url = new URL(`${baseUrl.replace(/\/$/, "")}/candles`);
   url.searchParams.set("symbol", symbol);
   url.searchParams.set("timeframe", request.interval);
-  url.searchParams.set("start", request.start.toISOString());
-  url.searchParams.set("end", request.end.toISOString());
+  url.searchParams.set("start", request.start.toISOString().slice(0, 10));
+  url.searchParams.set("end", request.end.toISOString().slice(0, 10));
   url.searchParams.set("order", "asc");
   url.searchParams.set("limit", String(PROVIDER_MAX_RAW_POINTS));
   return url;
@@ -215,7 +215,7 @@ export class LseProvider implements MarketDataProvider {
     this.#apiKey = options.apiKey;
     this.#baseUrl =
       options.baseUrl ?? "https://api.londonstrategicedge.com/vault";
-    this.#fetch = options.fetch ?? globalThis.fetch;
+    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#timeoutMs = options.timeoutMs ?? PROVIDER_REQUEST_TIMEOUT_MS;
     this.#maxResponseBytes =
       options.maxResponseBytes ?? PROVIDER_RESPONSE_MAX_BYTES;
