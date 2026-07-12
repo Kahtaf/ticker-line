@@ -40,6 +40,7 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   await builder.getByLabel("Ticker").fill("btc-usd");
   await builder.getByLabel("Timeframe").selectOption("7d");
   await builder.getByLabel("Theme").selectOption("dark");
+  await builder.getByLabel("Area fill").selectOption("true");
 
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "ticker=BTC-USD",
@@ -49,6 +50,9 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   );
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "theme=dark",
+  );
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "fill=true",
   );
   await expect(builder.locator("[data-preview-image]")).toHaveAttribute(
     "alt",

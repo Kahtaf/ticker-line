@@ -7,7 +7,7 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   "5y": "five years",
 };
 
-const TICKER_PATTERN = /^[A-Z0-9./^:-]{1,32}$/;
+const TICKER_PATTERN = /^[A-Z0-9.^=_-]{1,32}$/;
 
 function copyText(
   text: string,
@@ -90,8 +90,8 @@ if (form) {
   const themeInput = form.querySelector(
     '[name="theme"]',
   ) as unknown as HTMLSelectElement | null;
-  const colorInput = form.querySelector(
-    '[name="color"]',
+  const fillInput = form.querySelector(
+    '[name="fill"]',
   ) as unknown as HTMLSelectElement | null;
   const image = form.querySelector<HTMLImageElement>("[data-preview-image]");
   const frame = form.querySelector<HTMLElement>(".preview-frame");
@@ -104,7 +104,7 @@ if (form) {
   let debounce: number | undefined;
 
   const update = () => {
-    if (!tickerInput || !timeframeInput || !themeInput || !colorInput) return;
+    if (!tickerInput || !timeframeInput || !themeInput || !fillInput) return;
     const ticker = tickerInput.value.trim().toUpperCase();
     tickerInput.value = ticker;
 
@@ -123,7 +123,7 @@ if (form) {
       ticker,
       timeframe: timeframeInput.value,
       theme: themeInput.value,
-      color: colorInput.value,
+      fill: fillInput.value,
     });
     const nextUrl = `/v1/sparkline?${params.toString()}`;
 

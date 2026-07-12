@@ -33,14 +33,14 @@ const parameters = [
     required: 'optional',
     values: 'light, dark',
     fallback: 'light',
-    detail: 'Sets the chart background, fill, and neutral colors.',
+    detail: 'Sets the positive, negative, fill, and reference colors.',
   },
   {
-    name: 'color',
+    name: 'fill',
     required: 'optional',
-    values: 'auto, green, red, blue, gray',
-    fallback: 'auto',
-    detail: 'Auto derives direction from the first and last valid close.',
+    values: 'false, true',
+    fallback: 'false',
+    detail: 'Fills positive and negative areas back to the first-close reference line.',
   },
   {
     name: 'format',
@@ -188,13 +188,10 @@ const structuredData = {
               </select>
             </label>
             <label>
-              <span>Color</span>
-              <select name="color">
-                <option value="auto" selected>Auto</option>
-                <option value="green">Green</option>
-                <option value="red">Red</option>
-                <option value="blue">Blue</option>
-                <option value="gray">Gray</option>
+              <span>Area fill</span>
+              <select name="fill">
+                <option value="false" selected>Off</option>
+                <option value="true">On</option>
               </select>
             </label>
           </div>
