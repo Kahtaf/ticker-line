@@ -1,14 +1,22 @@
-import eslint from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    ignores: ['dist/**', '.astro/**', '.wrangler/**', 'coverage/**', 'worker-configuration.d.ts'],
+    ignores: [
+      "dist/**",
+      ".astro/**",
+      ".wrangler/**",
+      "coverage/**",
+      "site/**/*.astro",
+      "worker-configuration.d.ts",
+      "eslint.config.js",
+    ],
   },
   {
-    files: ['**/*.ts'],
+    files: ["**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -16,10 +24,20 @@ export default tseslint.config(
       },
     },
     rules: {
-      '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
     },
   },
-)
+  {
+    files: ["test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+    },
+  },
+);

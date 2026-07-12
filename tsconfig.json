@@ -21,6 +21,7 @@
     ".astro/types.d.ts",
     "site/**/*.astro",
     "site/**/*.ts",
+    "e2e/**/*.ts",
     "src/**/*.ts",
     "test/**/*.ts",
     "*.config.ts",

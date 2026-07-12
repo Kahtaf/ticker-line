@@ -1,17 +1,23 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
-  reporter: 'html',
+  reporter: "html",
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:8787',
-    trace: 'on-first-retry',
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:8787",
+    trace: "on-first-retry",
   },
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: "npm run dev:api -- --port 8787",
+        url: "http://localhost:8787/health",
+        reuseExistingServer: false,
+      },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
-})
+});
