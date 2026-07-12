@@ -9,13 +9,15 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:8787",
     trace: "on-first-retry",
   },
-  webServer: process.env.E2E_BASE_URL
-    ? undefined
+  ...(process.env.E2E_BASE_URL
+    ? {}
     : {
-        command: "npm run dev:api -- --port 8787",
-        url: "http://localhost:8787/health",
-        reuseExistingServer: false,
-      },
+        webServer: {
+          command: "npm run dev:api -- --port 8787",
+          url: "http://localhost:8787/health",
+          reuseExistingServer: false,
+        },
+      }),
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
