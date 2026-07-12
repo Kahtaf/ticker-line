@@ -1,0 +1,7 @@
+dist/
+.astro/
+.wrangler/
+coverage/
+node_modules/
+worker-configuration.d.ts
+test/golden/

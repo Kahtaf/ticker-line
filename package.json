@@ -1,0 +1,52 @@
+{
+  "name": "starklines",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "wrangler dev",
+    "dev:site": "astro dev",
+    "build:site": "astro build",
+    "build": "npm run build:site && wrangler deploy --dry-run --outdir .wrangler/build",
+    "typecheck": "tsc --noEmit && astro check",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:visual": "vitest run --config vitest.visual.config.ts",
+    "test:e2e": "playwright test",
+    "cf:typegen": "wrangler types",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "deploy:staging": "npm run build:site && wrangler deploy --env staging --secrets-file .dev.vars",
+    "deploy": "npm run build:site && wrangler deploy --secrets-file .dev.vars"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.8.0",
+    "hono": "^4.12.29",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@axe-core/playwright": "^4.12.1",
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.1.1",
+    "@types/pngjs": "^6.0.5",
+    "astro": "^7.0.7",
+    "eslint": "^10.7.0",
+    "fast-check": "^4.9.0",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
+    "prettier": "^3.9.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
