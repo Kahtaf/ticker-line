@@ -157,6 +157,17 @@ export function createApp(
     return c.req.method === "HEAD" ? withoutBody(response) : response;
   });
 
+  app.all("/health", async () => {
+    const requestId = crypto.randomUUID();
+    const response = await createErrorResponse(
+      toPublicError(new MethodNotAllowedError()),
+      "json",
+      requestId,
+    );
+    response.headers.set("Allow", "GET, HEAD");
+    return withApiHeaders(response, requestId);
+  });
+
   app.options("/v1/*", () => corsPreflightResponse(crypto.randomUUID()));
 
   app.on(["GET", "HEAD"], "/v1/sparkline", async (c) => {
