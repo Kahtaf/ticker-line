@@ -2,6 +2,7 @@ export const INTERNAL_FRESH_UNTIL_HEADER = "X-Internal-Fresh-Until";
 export const INTERNAL_CACHE_STATE_HEADER = "X-Internal-Cache-State";
 
 const STABLE_HEADERS = [
+  "cache-control",
   "content-type",
   "etag",
   "x-data-as-of",
@@ -66,7 +67,9 @@ export class ResponseArtifactCache {
     }
     headers.set(INTERNAL_FRESH_UNTIL_HEADER, metadata.freshUntil.toISOString());
     headers.set(INTERNAL_CACHE_STATE_HEADER, metadata.state);
-    headers.set("Cache-Control", `public, max-age=${cacheForSeconds}`);
+    if (!headers.has("Cache-Control")) {
+      headers.set("Cache-Control", `public, max-age=${cacheForSeconds}`);
+    }
     const artifact = new Response(response.clone().body, {
       status: response.status,
       statusText: response.statusText,

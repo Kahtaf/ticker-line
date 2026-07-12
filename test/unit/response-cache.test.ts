@@ -69,4 +69,22 @@ describe("ResponseArtifactCache", () => {
     ).toBeUndefined();
     expect(store.deleteCalls).toBe(1);
   });
+
+  it("preserves the public browser and shared-cache directives", async () => {
+    const store = new MemoryResponseCache();
+    const cache = new ResponseArtifactCache(store);
+    const key = new Request("https://cache.internal/directives");
+    const now = new Date("2026-07-12T12:00:00.000Z");
+    const cacheControl =
+      "public, max-age=60, s-maxage=600, stale-while-revalidate=3600";
+    await cache.put(
+      key,
+      new Response("body", { headers: { "Cache-Control": cacheControl } }),
+      { freshUntil: new Date(now.getTime() + 600_000), state: "FRESH" },
+      now,
+    );
+    expect((await cache.match(key, now))?.headers.get("Cache-Control")).toBe(
+      cacheControl,
+    );
+  });
 });
