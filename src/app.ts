@@ -10,13 +10,13 @@ import { readConfig, type AppConfig } from "./config";
 import {
   MethodNotAllowedError,
   ProviderError,
-  RateLimitedError,
   type PublicError,
   toPublicError,
 } from "./domain/errors";
 import type { MarketDataProvider } from "./domain/market-series";
 import type { OutputFormat } from "./domain/request";
 import { createErrorResponse } from "./http/error-response";
+import { enforceClientRateLimit } from "./http/client-rate-limit";
 import {
   corsPreflightResponse,
   JSON_CONTENT_TYPE,
@@ -181,10 +181,11 @@ export function createApp(
     let semanticError: PublicError | undefined;
     try {
       const limitKey = c.req.header("CF-Connecting-IP") ?? "anonymous";
-      const limit = await c.env.SPARKLINE_RATE_LIMITER.limit({ key: limitKey });
-      if (!limit.success) {
-        throw new RateLimitedError(undefined, { retryAfterSeconds: 60 });
-      }
+      await enforceClientRateLimit(
+        c.env.SPARKLINE_BURST_RATE_LIMITER,
+        c.env.SPARKLINE_RATE_LIMITER,
+        limitKey,
+      );
 
       const request = parseSparklineRequest(c.req.raw);
       canonicalRequest = request;

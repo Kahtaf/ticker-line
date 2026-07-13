@@ -20,10 +20,18 @@
   ],
   "ratelimits": [
     {
+      "name": "SPARKLINE_BURST_RATE_LIMITER",
+      "namespace_id": "7122603",
+      "simple": {
+        "limit": 20,
+        "period": 10,
+      },
+    },
+    {
       "name": "SPARKLINE_RATE_LIMITER",
       "namespace_id": "7122601",
       "simple": {
-        "limit": 300,
+        "limit": 60,
         "period": 60,
       },
     },
@@ -62,10 +70,18 @@
       ],
       "ratelimits": [
         {
+          "name": "SPARKLINE_BURST_RATE_LIMITER",
+          "namespace_id": "7122604",
+          "simple": {
+            "limit": 20,
+            "period": 10,
+          },
+        },
+        {
           "name": "SPARKLINE_RATE_LIMITER",
           "namespace_id": "7122602",
           "simple": {
-            "limit": 300,
+            "limit": 60,
             "period": 60,
           },
         },

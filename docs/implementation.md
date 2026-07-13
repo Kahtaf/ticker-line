@@ -221,10 +221,18 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
   ],
   "ratelimits": [
     {
+      "name": "SPARKLINE_BURST_RATE_LIMITER",
+      "namespace_id": "7122603", // ticker-line-api-rate-limit-burst
+      "simple": {
+        "limit": 20,
+        "period": 10
+      }
+    },
+    {
       "name": "SPARKLINE_RATE_LIMITER",
       "namespace_id": "7122601", // ticker-line-api-rate-limit
       "simple": {
-        "limit": 300,
+        "limit": 60,
         "period": 60
       }
     }
@@ -261,10 +269,18 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
       ],
       "ratelimits": [
         {
+          "name": "SPARKLINE_BURST_RATE_LIMITER",
+          "namespace_id": "7122604", // ticker-line-api-rate-limit-burst-staging
+          "simple": {
+            "limit": 20,
+            "period": 10
+          }
+        },
+        {
           "name": "SPARKLINE_RATE_LIMITER",
           "namespace_id": "7122602", // ticker-line-api-rate-limit-staging
           "simple": {
-            "limit": 300,
+            "limit": 60,
             "period": 60
           }
         }
@@ -318,7 +334,8 @@ Use these exact names unless this document is updated:
 | --- | --- | --- |
 | Worker and Static Assets project | `ticker-line-api` | `ticker-line-api-staging` |
 | Market-data KV namespace | `ticker-line-market-data-cache` | `ticker-line-market-data-cache-staging` |
-| Worker rate-limit namespace label | `ticker-line-api-rate-limit` (`7122601`) | `ticker-line-api-rate-limit-staging` (`7122602`) |
+| Worker sustained rate-limit namespace label | `ticker-line-api-rate-limit` (`7122601`) | `ticker-line-api-rate-limit-staging` (`7122602`) |
+| Worker burst rate-limit namespace label | `ticker-line-api-rate-limit-burst` (`7122603`) | `ticker-line-api-rate-limit-burst-staging` (`7122604`) |
 | API abuse/WAF rule, if created | `ticker-line-api-abuse` | `ticker-line-api-abuse-staging` |
 | Analytics Engine dataset, if later created | `ticker-line-api-metrics` | `ticker-line-api-metrics-staging` |
 
@@ -468,7 +485,9 @@ Allowed methods:
 
 `HEAD` must execute the same cache/validation path as `GET` but return no body and preserve the headers a corresponding `GET` would have returned, including SVG fallback error headers.
 
-Use the `SPARKLINE_RATE_LIMITER` binding directly; do not add rate-limit middleware packages. Start with the configured permissive 300 requests per 60 seconds per client key per Cloudflare location and tune it from production evidence. Because the anonymous API has no stable user ID, the MVP may use `CF-Connecting-IP` only as an unlogged limiter key, with thresholds high enough to avoid routinely penalizing shared networks. A failed limit check throws the same typed `RateLimitedError` used by the error mapper.
+Use the `SPARKLINE_BURST_RATE_LIMITER` and `SPARKLINE_RATE_LIMITER` bindings directly; do not add rate-limit middleware packages. Apply both to the unlogged `CF-Connecting-IP` key: 20 requests per 10 seconds for bursts and 60 requests per 60 seconds for sustained traffic. Check the burst window first so a rejected burst does not consume the sustained window. A failed check throws the same typed `RateLimitedError` used by the error mapper, with `Retry-After: 10` or `Retry-After: 60` as appropriate.
+
+These bindings are permissive, eventually consistent, and scoped per Cloudflare location. Their thresholds are abuse controls rather than exact accounting or a global provider-call budget. Tune them from production evidence, especially for shared mobile and corporate networks, and implement a separate strongly coordinated upstream governor before traffic can approach the LSE account limit.
 
 Use WAF/rate-limit blocking only as a coarse emergency abuse layer above the application threshold. A pre-Worker Cloudflare block cannot satisfy the normal SVG fallback contract and should not be the routine fair-use response path.
 
