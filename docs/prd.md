@@ -138,7 +138,7 @@ curl "https://ticker-line.com/v1/sparkline?ticker=BTC-USD&timeframe=7d&format=js
 | `ticker` | Yes | Provider-supported symbol | — | Trimmed and normalized to uppercase where safe; examples: `AAPL`, `BTC-USD`, `VOD.L`. |
 | `timeframe` | No | `1d`, `7d`, `1m`, `3m`, `1y`, `5y` | `1m` | Calendar range; the server chooses a suitable sampling interval. |
 | `theme` | No | `light`, `dark` | `light` | Selects accessible positive, negative, fill, and reference-line colors. |
-| `fill` | No | `false`, `true` | `false` | When enabled, fills each positive or negative region between the price line and the first-close reference line. |
+| `fill` | No | `false`, `true` | `false` | When enabled, fills each positive or negative region between the price line and the chart reference line. |
 | `format` | No | `svg`, `json` | `svg` | `svg` returns the image; `json` returns an envelope. |
 
 The SVG always uses a `160 × 48` intrinsic size and a matching `viewBox`. Because SVG scales without loss, consumers control display size through normal HTML attributes or CSS instead of `width` and `height` API parameters. This avoids two high-cardinality cache dimensions.
@@ -177,12 +177,21 @@ The SVG should:
   "ticker": "AAPL",
   "timeframe": "1m",
   "currency": "USD",
+  "price": 213.5,
+  "referencePrice": 200,
+  "change": 13.5,
+  "changePercent": 6.75,
+  "direction": "up",
   "dataAsOf": "2026-07-12T19:45:00Z",
   "svg": "<svg ...>...</svg>"
 }
 ```
 
-The JSON envelope is intentionally flat. `resolvedTicker`, `assetType`, point data, provider identity, cache internals, and rendering configuration are not part of the V1 response. `X-Request-Id`, `X-Data-As-Of`, and `X-Cache` headers provide operational context without expanding the body.
+The JSON envelope is intentionally flat. `price` is the latest provider close. `referencePrice` is the close used for the horizontal reference line, `change` is `price - referencePrice`, `changePercent` is `(change / referencePrice) * 100`, and `direction` is `up`, `down`, or `flat`. When `referencePrice` is zero, `changePercent` is `null`. Return raw numeric values rather than presentation-formatted strings.
+
+For `1d` session-based instruments, use the final provider candle before the latest detected session gap as the reference and show the latest session. Obtain the reference and visible points from one widened candle request, never a second per-request provider call. For continuously traded instruments and longer timeframes, use the first visible close. Provider candles do not supply a reliable human-readable instrument name, so the API returns the requested ticker rather than inventing a display name.
+
+`resolvedTicker`, `assetType`, point data, provider identity, cache internals, and rendering configuration are not part of the V1 response. `X-Request-Id`, `X-Data-As-Of`, and `X-Cache` headers provide operational context without expanding the body.
 
 `currency` is optional and is omitted when the provider cannot supply it reliably. The service must not infer an equity currency from ticker spelling or exchange suffix solely to populate this field.
 
@@ -312,6 +321,7 @@ type MarketSeries = {
   exchange?: string;
   timezone?: string;
   dataAsOf: string;
+  referenceClose: number;
   points: Array<{ timestamp: number; close: number }>;
 };
 ```
@@ -420,8 +430,8 @@ The renderer should be a small, testable pure function from normalized points an
 Direction for the default style:
 
 - Minimal Apple Stocks/Yahoo Finance-inspired line treatment without copying brand assets.
-- No axes, grid, labels, tooltip, or logo inside the chart, apart from one subtle horizontal reference at the first close.
-- Green at or above the first-close reference and red below it, splitting exactly at crossings, with accessible light/dark presets.
+- No axes, grid, labels, tooltip, or logo inside the chart, apart from one subtle horizontal reference at `referencePrice`.
+- Green at or above `referencePrice` and red below it, splitting exactly at crossings, with accessible light/dark presets.
 - Rounded line caps and joins.
 - Optional restrained positive/negative area fill between the price and reference lines.
 - Crisp output at small sizes and no reliance on a specific device pixel ratio.

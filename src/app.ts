@@ -117,6 +117,7 @@ async function renderSuccess(
     fill: request.fill,
     ticker: request.ticker,
     timeframe: request.timeframe,
+    referenceClose: series.series.referenceClose,
   });
   const body =
     request.format === "svg"

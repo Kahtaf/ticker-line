@@ -25,6 +25,7 @@ export type RenderOptions = Readonly<{
   fill: boolean;
   ticker: string;
   timeframe: Timeframe;
+  referenceClose?: number;
 }>;
 
 type ToneRun = Readonly<{
@@ -150,7 +151,7 @@ export function renderSparkline(
   const description = escapeXmlText(
     `Price movement for ${options.ticker} over ${options.timeframe}, from ${first.close} to ${last.close}.`,
   );
-  const geometry = createSparklineGeometry(sampled);
+  const geometry = createSparklineGeometry(sampled, options.referenceClose);
   const runs = splitAtBaseline(
     geometry.coordinates,
     geometry.baselineClose,
@@ -185,18 +186,50 @@ export type SparklineJson = Readonly<{
   ticker: string;
   timeframe: Timeframe;
   currency?: string;
+  price: number;
+  referencePrice: number;
+  change: number;
+  changePercent: number | null;
+  direction: "up" | "down" | "flat";
   dataAsOf: string;
   svg: string;
 }>;
 
+function stableQuoteNumber(value: number): number {
+  return Number(value.toPrecision(12));
+}
+
 export function renderSparklineJson(
-  series: Pick<MarketSeries, "currency" | "dataAsOf">,
+  series: Pick<
+    MarketSeries,
+    "currency" | "dataAsOf" | "points" | "referenceClose"
+  >,
   options: Pick<RenderOptions, "ticker" | "timeframe">,
   svg: string,
 ): string {
+  const latest = series.points.at(-1);
+  if (latest === undefined) {
+    throw new RangeError(
+      "At least one market point is required for JSON output.",
+    );
+  }
+  const price = latest.close;
+  const referencePrice = series.referenceClose;
+  const change = stableQuoteNumber(price - referencePrice);
+  const changePercent =
+    referencePrice === 0
+      ? null
+      : stableQuoteNumber((change / referencePrice) * 100);
+  const direction: SparklineJson["direction"] =
+    change > 0 ? "up" : change < 0 ? "down" : "flat";
   const required = {
     ticker: options.ticker,
     timeframe: options.timeframe,
+    price,
+    referencePrice,
+    change,
+    changePercent,
+    direction,
   };
   const body: SparklineJson =
     series.currency === undefined

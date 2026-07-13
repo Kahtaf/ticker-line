@@ -39,6 +39,7 @@ const series = {
   resolvedTicker: "AAPL",
   assetType: "unknown" as const,
   dataAsOf: "2026-07-11T20:00:00.000Z",
+  referenceClose: 213.5,
   points: [{ timestamp: Date.parse("2026-07-11T20:00:00.000Z"), close: 213.5 }],
 };
 

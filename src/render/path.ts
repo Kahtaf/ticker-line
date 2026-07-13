@@ -31,6 +31,7 @@ export function coordinatesToPath(
 
 export function createSparklineGeometry(
   points: readonly MarketPoint[],
+  referenceClose?: number,
 ): SparklineGeometry {
   if (points.length === 0) {
     throw new RangeError("At least one point is required.");
@@ -39,11 +40,23 @@ export function createSparklineGeometry(
   if (first === undefined) {
     throw new RangeError("At least one point is required.");
   }
+  const baselineClose = referenceClose ?? first.close;
+  if (!Number.isFinite(baselineClose)) {
+    throw new RangeError("The reference close must be finite.");
+  }
   if (points.length === 1) {
-    const y = SVG_HEIGHT / 2;
+    const minClose = Math.min(first.close, baselineClose);
+    const maxClose = Math.max(first.close, baselineClose);
+    const toY = (close: number): number =>
+      minClose === maxClose
+        ? SVG_HEIGHT / 2
+        : SVG_PADDING_Y +
+          ((maxClose - close) / (maxClose - minClose)) *
+            (SVG_HEIGHT - SVG_PADDING_Y * 2);
+    const y = toY(first.close);
     return {
-      baselineClose: first.close,
-      baselineY: y,
+      baselineClose,
+      baselineY: toY(baselineClose),
       coordinates: [
         { x: SVG_WIDTH / 2 - 3, y, close: first.close },
         { x: SVG_WIDTH / 2 + 3, y, close: first.close },
@@ -58,8 +71,8 @@ export function createSparklineGeometry(
   const minTime = first.timestamp;
   const maxTime = last.timestamp;
   const timeExtent = maxTime - minTime;
-  let minClose = Infinity;
-  let maxClose = -Infinity;
+  let minClose = baselineClose;
+  let maxClose = baselineClose;
   for (const point of points) {
     minClose = Math.min(minClose, point.close);
     maxClose = Math.max(maxClose, point.close);
@@ -90,8 +103,16 @@ export function createSparklineGeometry(
   });
 
   return {
-    baselineClose: first.close,
-    baselineY: coordinates[0]?.y ?? SVG_HEIGHT / 2,
+    baselineClose,
+    baselineY:
+      minClose === maxClose
+        ? SVG_HEIGHT / 2
+        : SVG_PADDING_Y +
+          (Number.isFinite(closeExtent)
+            ? (maxClose - baselineClose) / closeExtent
+            : (scaledMaxClose - baselineClose / closeScale) /
+              scaledCloseExtent) *
+            drawableHeight,
     coordinates,
   };
 }

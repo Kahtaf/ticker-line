@@ -47,7 +47,7 @@ describe("sparkline renderer", () => {
     ).toMatchSnapshot();
   });
 
-  it("colors each segment from its position against the first close", () => {
+  it("colors each segment from its position against the reference close", () => {
     const rising = [
       { timestamp: 0, close: 1 },
       { timestamp: 1, close: 2 },
@@ -75,7 +75,7 @@ describe("sparkline renderer", () => {
     );
   });
 
-  it("always renders a first-close reference and optionally fills to it", () => {
+  it("always renders a reference line and optionally fills to it", () => {
     const points = [10, 8, 12].map((close, timestamp) => ({
       timestamp,
       close,
@@ -135,13 +135,59 @@ describe("sparkline renderer", () => {
     }
   });
 
-  it("builds the locked JSON envelope and omits unknown currency", () => {
+  it("builds quote metadata from the same closes and omits unknown currency", () => {
     const svg = "<svg></svg>";
     expect(
-      renderSparklineJson({ dataAsOf: "2026-01-01T00:00:00Z" }, options, svg),
+      renderSparklineJson(
+        {
+          dataAsOf: "2026-01-01T00:00:00Z",
+          referenceClose: 200,
+          points: [
+            { timestamp: 1, close: 200 },
+            { timestamp: 2, close: 208.4 },
+          ],
+        },
+        options,
+        svg,
+      ),
     ).toBe(
-      '{"ticker":"AAPL","timeframe":"1m","dataAsOf":"2026-01-01T00:00:00Z","svg":"<svg></svg>"}',
+      '{"ticker":"AAPL","timeframe":"1m","price":208.4,"referencePrice":200,"change":8.4,"changePercent":4.2,"direction":"up","dataAsOf":"2026-01-01T00:00:00Z","svg":"<svg></svg>"}',
     );
+  });
+
+  it("returns a null percentage for a zero reference and identifies flat prices", () => {
+    expect(
+      JSON.parse(
+        renderSparklineJson(
+          {
+            dataAsOf: "2026-01-01T00:00:00Z",
+            referenceClose: 0,
+            points: [{ timestamp: 1, close: 0 }],
+          },
+          options,
+          "<svg></svg>",
+        ),
+      ),
+    ).toMatchObject({
+      price: 0,
+      referencePrice: 0,
+      change: 0,
+      changePercent: null,
+      direction: "flat",
+    });
+  });
+
+  it("uses an explicit reference close for the baseline and color", () => {
+    const svg = renderSparkline(
+      [
+        { timestamp: 1, close: 102 },
+        { timestamp: 2, close: 104 },
+      ],
+      { ...options, referenceClose: 100 },
+    );
+    expect(svg).toContain('stroke-dasharray="2 3"');
+    expect(svg).toContain('stroke="#17854b"');
+    expect(svg).not.toContain('stroke="#d13c43"');
   });
 
   it("hashes exact response bytes into a strong ETag", async () => {

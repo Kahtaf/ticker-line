@@ -174,11 +174,13 @@ function normalizeRows(
     assetType: AssetType;
     currency?: string;
     dataAsOf: string;
+    referenceClose: number;
     points: readonly MarketPoint[];
   } = {
     resolvedTicker,
     assetType: metadata.assetType,
     dataAsOf: new Date(latest.timestamp).toISOString(),
+    referenceClose: points[0]?.close ?? latest.close,
     points,
   };
   if (metadata.currency !== undefined) base.currency = metadata.currency;

@@ -23,13 +23,14 @@ const seriesSchema = z
     exchange: z.string().optional(),
     timezone: z.string().optional(),
     dataAsOf: isoDate,
+    referenceClose: z.number().finite(),
     points: z.array(pointSchema).min(1).max(5_000).readonly(),
   })
   .readonly();
 
 export const cachedMarketSeriesSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     fetchedAt: isoDate,
     freshUntil: isoDate,
     staleUntil: isoDate,
@@ -149,7 +150,7 @@ export class MarketDataCache {
       freshUntil.getTime() + input.staleForSeconds * 1_000,
     );
     const record: CachedMarketSeries = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       fetchedAt: now.toISOString(),
       freshUntil: freshUntil.toISOString(),
       staleUntil: staleUntil.toISOString(),

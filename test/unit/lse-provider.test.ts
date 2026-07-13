@@ -56,6 +56,7 @@ describe("LseProvider", () => {
       resolvedTicker: "AAPL",
       assetType: "unknown",
       dataAsOf: "2026-07-11T20:00:00.000Z",
+      referenceClose: 211.25,
       points: [
         { timestamp: Date.UTC(2026, 6, 10, 20), close: 211.25 },
         { timestamp: Date.UTC(2026, 6, 11, 20), close: 213.5 },

@@ -10,7 +10,9 @@ import {
   TickerNotFoundError,
 } from "../domain/errors";
 import type {
+  AssetType,
   MarketDataProvider,
+  MarketPoint,
   MarketSeries,
   MarketSeriesRequest,
 } from "../domain/market-series";
@@ -54,18 +56,69 @@ function keyParts(
   };
 }
 
-function mostRecentSession(series: MarketSeries): MarketSeries {
-  const latest = series.points.at(-1);
-  if (latest === undefined) throw new InsufficientDataError();
-  const session = new Date(latest.timestamp).toISOString().slice(0, 10);
-  const points = series.points.filter(
-    (point) => new Date(point.timestamp).toISOString().slice(0, 10) === session,
-  );
-  if (points.length === 0) throw new InsufficientDataError();
-  return { ...series, points };
+const ONE_DAY_MS = 24 * 60 * 60 * 1_000;
+const ONE_DAY_PROVIDER_LOOKBACK_MS = 8 * ONE_DAY_MS;
+const SESSION_GAP_MS = 2 * 60 * 60 * 1_000;
+
+function isSessionBased(assetType: AssetType): boolean {
+  return assetType !== "crypto" && assetType !== "forex";
 }
 
-async function fetchWithLastSessionFallback(
+function trailingPoints(
+  points: readonly MarketPoint[],
+  visibleStart: Date,
+): readonly MarketPoint[] {
+  const visible = points.filter(
+    (point) => point.timestamp >= visibleStart.getTime(),
+  );
+  return visible.length > 0 ? visible : points.slice(-1);
+}
+
+/**
+ * Select the visible one-day series and its comparison candle from one widened
+ * provider response. Exchange-traded series use the final candle before the
+ * latest overnight/session gap; continuously traded series use the first close
+ * in the trailing 24-hour window.
+ */
+export function selectOneDaySeries(
+  series: MarketSeries,
+  visibleStart: Date,
+): MarketSeries {
+  if (!isSessionBased(series.assetType)) {
+    const points = trailingPoints(series.points, visibleStart);
+    const referenceClose = points[0]?.close;
+    if (referenceClose === undefined) throw new InsufficientDataError();
+    return { ...series, referenceClose, points };
+  }
+
+  let sessionStart = 0;
+  for (let index = 1; index < series.points.length; index += 1) {
+    const previous = series.points[index - 1];
+    const current = series.points[index];
+    if (
+      previous !== undefined &&
+      current !== undefined &&
+      current.timestamp - previous.timestamp > SESSION_GAP_MS
+    ) {
+      sessionStart = index;
+    }
+  }
+  const reference = series.points[sessionStart - 1];
+  if (reference !== undefined) {
+    return {
+      ...series,
+      referenceClose: reference.close,
+      points: series.points.slice(sessionStart),
+    };
+  }
+
+  const points = trailingPoints(series.points, visibleStart);
+  const referenceClose = points[0]?.close;
+  if (referenceClose === undefined) throw new InsufficientDataError();
+  return { ...series, referenceClose, points };
+}
+
+async function fetchSelectedSeries(
   provider: MarketDataProvider,
   request: CanonicalSparklineRequest,
   now: Date,
@@ -77,36 +130,28 @@ async function fetchWithLastSessionFallback(
   const range: MarketSeriesRequest = {
     ticker: request.ticker,
     interval,
-    ...requestedRange,
+    start:
+      request.timeframe === "1d"
+        ? new Date(requestedRange.end.getTime() - ONE_DAY_PROVIDER_LOOKBACK_MS)
+        : requestedRange.start,
+    end: requestedRange.end,
   };
-  try {
-    const series = await provider.fetchSeries(range, { requestId, signal });
-    return { series, range };
-  } catch (error) {
-    if (
-      !(error instanceof InsufficientDataError) ||
-      request.timeframe !== "1d"
-    ) {
-      throw error;
-    }
-  }
-
-  const extendedRange: MarketSeriesRequest = {
-    ...range,
-    start: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000),
-  };
-  const extended = await provider.fetchSeries(extendedRange, {
-    requestId,
-    signal,
-  });
-  return { series: mostRecentSession(extended), range: extendedRange };
+  const fetched = await provider.fetchSeries(range, { requestId, signal });
+  const series =
+    request.timeframe === "1d"
+      ? selectOneDaySeries(fetched, requestedRange.start)
+      : {
+          ...fetched,
+          referenceClose: fetched.points[0]?.close ?? fetched.referenceClose,
+        };
+  return { series, range };
 }
 
 async function refresh(
   options: SeriesServiceOptions,
   parts: DataCacheKeyParts,
 ): Promise<CachedMarketSeries> {
-  const fetched = await fetchWithLastSessionFallback(
+  const fetched = await fetchSelectedSeries(
     options.provider,
     options.request,
     options.now,
@@ -138,6 +183,7 @@ function fromRecord(
     resolvedTicker: cachedSeries.resolvedTicker,
     assetType: cachedSeries.assetType,
     dataAsOf: cachedSeries.dataAsOf,
+    referenceClose: cachedSeries.referenceClose,
     points: cachedSeries.points,
     ...(cachedSeries.currency === undefined
       ? {}

@@ -243,8 +243,8 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
     "PROVIDER_VERSION": "v1",
     "PROVIDER_BASE_URL": "replace-after-provider-validation",
     "CACHE_POLICY_VERSION": "v1",
-    "NORMALIZATION_VERSION": "v1",
-    "RENDERER_VERSION": "v1"
+    "NORMALIZATION_VERSION": "v2",
+    "RENDERER_VERSION": "v3"
   },
   "observability": {
     "enabled": true,
@@ -291,8 +291,8 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
         "PROVIDER_VERSION": "v1",
         "PROVIDER_BASE_URL": "replace-after-provider-validation",
         "CACHE_POLICY_VERSION": "v1",
-        "NORMALIZATION_VERSION": "v1",
-        "RENDERER_VERSION": "v1"
+        "NORMALIZATION_VERSION": "v2",
+        "RENDERER_VERSION": "v3"
       },
       "observability": {
         "enabled": true,
@@ -423,6 +423,7 @@ export type MarketSeries = Readonly<{
   exchange?: string
   timezone?: string
   dataAsOf: string
+  referenceClose: number
   points: readonly MarketPoint[]
 }>
 
@@ -547,7 +548,7 @@ For `GET /v1/sparkline`:
 6. If data is fresh, use it immediately.
 7. If data is stale but still serviceable, use it immediately and schedule a refresh with `ctx.waitUntil()`.
 8. If data is absent or beyond `staleUntil`, fetch the provider synchronously within the request budget.
-9. Normalize, validate, and store successful provider data in KV.
+9. Normalize, select the visible points and reference close, validate, and store successful provider data in KV.
 10. Deterministically sample and render the selected output format.
 11. Compute the ETag from the exact output bytes.
 12. Store the stable generated representation with an expiry no later than the underlying data's `freshUntil`.
@@ -604,11 +605,13 @@ market-data:{cachePolicyVersion}:{providerId}:{providerVersion}:{normalizationVe
 
 Do not include exact rolling start/end timestamps; doing so creates a new cache entry on every request. The value records the actual covered range. Aliases may initially occupy duplicate entries; add an alias map only after measuring meaningful duplication.
 
+For `1d`, widen the single provider request to eight calendar days so the same response normally contains the latest session plus a comparison candle across weekends and holidays. For session-based data, find the last gap longer than two hours, use the candle immediately before it as `referenceClose`, and retain the points after it for rendering. For continuous crypto/forex data, retain the trailing 24-hour points and use the first retained close. Never issue a second provider request solely to compute quote metadata.
+
 KV record shape:
 
 ```ts
 export type CachedMarketSeries = Readonly<{
-  schemaVersion: 1
+  schemaVersion: 2
   fetchedAt: string
   freshUntil: string
   staleUntil: string

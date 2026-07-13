@@ -15,6 +15,7 @@ export type MarketSeries = Readonly<{
   exchange?: string;
   timezone?: string;
   dataAsOf: string;
+  referenceClose: number;
   points: readonly MarketPoint[];
 }>;
 
