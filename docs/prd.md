@@ -1,17 +1,18 @@
-# Sparkline API — Product Requirements Document
+# Ticker Line — Product Requirements Document
 
-- **Status:** Draft for discussion
+- **Status:** Locked for implementation
 - **Last updated:** 2026-07-12
 - **Owner:** TBD
-- **Working name:** Sparkline API (final product name and domain TBD)
+- **Product name:** Ticker Line
+- **Production domain:** `ticker-line.com`
 
 ## 1. Product summary
 
-Sparkline API is a hosted, unauthenticated HTTP API that turns a market symbol and timeframe into a compact, static SVG price chart. The primary experience should be as simple as using an image URL:
+Ticker Line is a hosted, unauthenticated HTTP API that turns a market symbol and timeframe into a compact, static SVG price chart. The primary experience should be as simple as using an image URL:
 
 ```html
 <img
-  src="https://api.example.com/v1/sparkline?ticker=AAPL&timeframe=1m"
+  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m"
   alt="AAPL price over one month"
   width="160"
   height="48"
@@ -111,7 +112,7 @@ HTML:
 
 ```html
 <img
-  src="https://api.example.com/v1/sparkline?ticker=AAPL&timeframe=1m"
+  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m"
   alt="AAPL price over one month"
   width="160"
   height="48"
@@ -121,13 +122,13 @@ HTML:
 Markdown:
 
 ```md
-![AAPL one-month sparkline](https://api.example.com/v1/sparkline?ticker=AAPL&timeframe=1m)
+![AAPL one-month sparkline](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m)
 ```
 
 JSON:
 
 ```sh
-curl "https://api.example.com/v1/sparkline?ticker=BTC-USD&timeframe=7d&format=json"
+curl "https://ticker-line.com/v1/sparkline?ticker=BTC-USD&timeframe=7d&format=json"
 ```
 
 ### Query parameters

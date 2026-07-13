@@ -1,9 +1,11 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "starklines-api",
+  "name": "ticker-line-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-12",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "ticker-line.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
@@ -13,7 +15,7 @@
   "kv_namespaces": [
     {
       "binding": "MARKET_DATA_CACHE",
-      "id": "ce84d17472274bbfaa6c77cd2ffcb9e5",
+      "id": "ce84d17472274bbfaa6c77cd2ffcb9e5", // ticker-line-market-data-cache
     },
   ],
   "ratelimits": [
@@ -41,11 +43,13 @@
   },
   "env": {
     "staging": {
-      "name": "starklines-api-staging",
+      "name": "ticker-line-api-staging",
+      "workers_dev": true,
+      "routes": [],
       "kv_namespaces": [
         {
           "binding": "MARKET_DATA_CACHE",
-          "id": "7696e8d39f69457fb8df84f936b2df7d",
+          "id": "7696e8d39f69457fb8df84f936b2df7d", // ticker-line-market-data-cache-staging
         },
       ],
       "ratelimits": [

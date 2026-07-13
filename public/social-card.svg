@@ -1,15 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Starklines</title>
-  <desc id="desc">Market charts in one URL</desc>
-  <rect width="1200" height="630" fill="#f4f6f2"/>
-  <path d="M0 1h1200M0 629h1200" stroke="#ccd4ce"/>
+  <title id="title">Ticker Line</title>
+  <desc id="desc">Market sparklines in one URL</desc>
+  <rect width="1200" height="630" fill="#ffffff"/>
+  <path d="M0 1h1200M0 629h1200" stroke="#dedede"/>
   <g transform="translate(80 72)">
-    <rect width="48" height="48" rx="6" fill="#173f2c"/>
-    <path d="M6 32.25 15 22.5l7.5 6 10.5-15 12 6.75" fill="none" stroke="#a9f0bf" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="66" y="34" fill="#18201b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="30" font-weight="650" letter-spacing="-1">Starklines</text>
+    <rect width="48" height="48" fill="#111111"/>
+    <path d="M6 32.25 15 22.5l7.5 6 10.5-15 12 6.75" fill="none" stroke="#ffffff" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="66" y="34" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="650" letter-spacing="-1">ticker-line</text>
   </g>
-  <text x="80" y="300" fill="#18201b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="76" font-weight="700" letter-spacing="-4">Market charts,</text>
-  <text x="80" y="384" fill="#18201b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="76" font-weight="700" letter-spacing="-4">in one URL.</text>
-  <path d="M720 382 785 320l54 41 90-126 108 47 83-80" fill="none" stroke="#2c8c57" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="80" y="534" fill="#5d6961" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="22">/v1/sparkline?ticker=AAPL&amp;timeframe=1m</text>
+  <text x="80" y="300" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" letter-spacing="-4">Market sparklines</text>
+  <text x="80" y="384" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" letter-spacing="-4">in one URL.</text>
+  <path d="M720 430 785 368l54 41 90-126 108 47 83-80" fill="none" stroke="#176b3a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M720 382h400" stroke="#b8b8b8" stroke-width="2" stroke-dasharray="5 7"/>
+  <text x="80" y="534" fill="#666666" font-family="SFMono-Regular,Consolas,monospace" font-size="22">ticker-line.com/v1/sparkline?ticker=AAPL&amp;timeframe=1m</text>
 </svg>

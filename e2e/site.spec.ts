@@ -18,19 +18,31 @@ test("renders indexable documentation and a live product example", async ({
 }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle(/Starklines/);
+  await expect(page).toHaveTitle(/Ticker Line/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Market charts, in one URL.",
+    "Market sparklines in one URL.",
   );
+  await expect(page.getByRole("heading", { name: "Parameters" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Five parameters. Stable by design." }),
+    page.locator('img[alt="AAPL price over one month"]'),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Errors that still render." }),
-  ).toBeVisible();
-  await expect(
-    page.locator('img[alt="Live AAPL price sparkline over one month"]'),
-  ).toBeVisible();
+});
+
+test("loads common ticker presets into the live builder", async ({ page }) => {
+  await page.goto("/");
+  const builder = page.locator("[data-request-builder]");
+
+  await builder.getByRole("link", { name: "BTC-USD" }).click();
+
+  await expect(builder.getByLabel("Ticker")).toHaveValue("BTC-USD");
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "ticker=BTC-USD",
+  );
+  await expect(builder.locator("[data-generated-url]")).toHaveAttribute(
+    "href",
+    /ticker=BTC-USD/,
+  );
 });
 
 test("updates the request URL and preview accessibly", async ({ page }) => {
@@ -40,7 +52,7 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   await builder.getByLabel("Ticker").fill("btc-usd");
   await builder.getByLabel("Timeframe").selectOption("7d");
   await builder.getByLabel("Theme").selectOption("dark");
-  await builder.getByLabel("Area fill").selectOption("true");
+  await builder.getByLabel("Fill").selectOption("true");
 
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "ticker=BTC-USD",
@@ -74,7 +86,7 @@ test("reports invalid ticker input without issuing a new preview request", async
 
   await builder.getByLabel("Ticker").fill("bad ticker");
   await expect(builder.locator("[data-ticker-error]")).toHaveText(
-    "Enter a valid market symbol before loading a preview.",
+    "Enter a valid market symbol.",
   );
   await expect(builder.locator("[data-generated-url]")).toHaveText(
     originalUrl ?? "",

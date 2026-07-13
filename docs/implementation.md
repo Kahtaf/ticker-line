@@ -1,4 +1,4 @@
-# Sparkline API — Implementation Specification
+# Ticker Line — Implementation Specification
 
 - **Status:** Build-ready draft
 - **Product requirements:** [`docs/prd.md`](./prd.md)
@@ -178,7 +178,7 @@ The initial `package.json` should expose these stable commands so humans and age
     "dev:api": "wrangler dev",
     "dev:site": "astro dev",
     "build:site": "astro build",
-    "build": "npm run build:site && wrangler deploy --dry-run --outdir .wrangler/build",
+    "build": "npm run build:site && wrangler deploy --env=\"\" --dry-run --outdir .wrangler/build",
     "typecheck": "tsc --noEmit && astro check",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -189,7 +189,7 @@ The initial `package.json` should expose these stable commands so humans and age
     "test:e2e": "playwright test",
     "cf:typegen": "wrangler types",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
-    "deploy": "npm run build:site && wrangler deploy"
+    "deploy": "npm run build:site && wrangler deploy --env=\"\""
   }
 }
 ```
@@ -205,7 +205,7 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
 ```jsonc
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "starklines-api",
+  "name": "ticker-line-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-12",
   "compatibility_flags": ["nodejs_compat"],
@@ -216,13 +216,13 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
   "kv_namespaces": [
     {
       "binding": "MARKET_DATA_CACHE",
-      "id": "id-for-starklines-market-data-cache"
+      "id": "id-for-ticker-line-market-data-cache"
     }
   ],
   "ratelimits": [
     {
       "name": "SPARKLINE_RATE_LIMITER",
-      "namespace_id": "7122601", // starklines-api-rate-limit
+      "namespace_id": "7122601", // ticker-line-api-rate-limit
       "simple": {
         "limit": 300,
         "period": 60
@@ -244,17 +244,17 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
   },
   "env": {
     "staging": {
-      "name": "starklines-api-staging",
+      "name": "ticker-line-api-staging",
       "kv_namespaces": [
         {
           "binding": "MARKET_DATA_CACHE",
-          "id": "id-for-starklines-market-data-cache-staging"
+          "id": "id-for-ticker-line-market-data-cache-staging"
         }
       ],
       "ratelimits": [
         {
           "name": "SPARKLINE_RATE_LIMITER",
-          "namespace_id": "7122602", // starklines-api-rate-limit-staging
+          "namespace_id": "7122602", // ticker-line-api-rate-limit-staging
           "simple": {
             "limit": 300,
             "period": 60
@@ -294,25 +294,25 @@ Cache policy values should be configuration, not scattered constants. Begin with
 
 ### Cloudflare resource naming
 
-Every Cloudflare resource created for this project must have a dashboard-visible name beginning with `starklines-`. Uppercase Worker binding identifiers such as `MARKET_DATA_CACHE` are code identifiers and are exempt; the bound Cloudflare resource is not.
+Every Cloudflare resource created for this project must have a dashboard-visible name beginning with `ticker-line-`. Uppercase Worker binding identifiers such as `MARKET_DATA_CACHE` are code identifiers and are exempt; the bound Cloudflare resource is not.
 
 Use these exact names unless this document is updated:
 
 | Resource | Production name | Staging name |
 | --- | --- | --- |
-| Worker and Static Assets project | `starklines-api` | `starklines-api-staging` |
-| Market-data KV namespace | `starklines-market-data-cache` | `starklines-market-data-cache-staging` |
-| Worker rate-limit namespace label | `starklines-api-rate-limit` (`7122601`) | `starklines-api-rate-limit-staging` (`7122602`) |
-| API abuse/WAF rule, if created | `starklines-api-abuse` | `starklines-api-abuse-staging` |
-| Analytics Engine dataset, if later created | `starklines-api-metrics` | `starklines-api-metrics-staging` |
+| Worker and Static Assets project | `ticker-line-api` | `ticker-line-api-staging` |
+| Market-data KV namespace | `ticker-line-market-data-cache` | `ticker-line-market-data-cache-staging` |
+| Worker rate-limit namespace label | `ticker-line-api-rate-limit` (`7122601`) | `ticker-line-api-rate-limit-staging` (`7122602`) |
+| API abuse/WAF rule, if created | `ticker-line-api-abuse` | `ticker-line-api-abuse-staging` |
+| Analytics Engine dataset, if later created | `ticker-line-api-metrics` | `ticker-line-api-metrics-staging` |
 
-Before creating a resource, list existing resources and reuse an exact-name match. Do not create numbered duplicates such as `starklines-market-data-cache-2`. Do not alter or delete any Cloudflare resource whose name does not begin with `starklines-`.
+Before creating a resource, list existing resources and reuse an exact-name match. Do not create numbered duplicates such as `ticker-line-market-data-cache-2`. Do not alter or delete any Cloudflare resource whose name does not begin with `ticker-line-` or the explicitly retired legacy project prefix.
 
-Workers Rate Limiting binding namespaces are identified by account-unique positive integers and are not visible as named dashboard resources. The comments and table above are their required Starklines labels. Keep their IDs dedicated to this project; never reuse them in a non-Starklines Worker.
+Workers Rate Limiting binding namespaces are identified by account-unique positive integers and are not visible as named dashboard resources. The comments and table above are their required Ticker Line labels. Keep their IDs dedicated to this project; never reuse them in another Worker.
 
 ### Provisioning and live deployment authority
 
-Agents implementing this specification are authorized to use the logged-in Wrangler session to create and update project-scoped `starklines-*` resources, upload the Starklines Worker secret, deploy staging and production Worker versions, and test the deployed site/API. This authority does not waive the provider-rights launch gate or authorize destructive changes to unrelated Cloudflare resources.
+Agents implementing this specification are authorized to use the logged-in Wrangler session to create and update project-scoped `ticker-line-*` resources, upload the Ticker Line Worker secret, deploy staging and production Worker versions, and test the deployed site/API. This authority does not waive the provider-rights launch gate or authorize destructive changes to unrelated Cloudflare resources.
 
 The desktop terminal has an authenticated Wrangler session, but a bare global `wrangler` binary may not be on every agent shell's `PATH`. After dependencies exist, prefer the repository-pinned CLI through `npx wrangler`. During initial scaffolding, `npx --yes wrangler@4.110.0` is an acceptable bootstrap.
 
@@ -321,15 +321,15 @@ Expected setup flow:
 ```sh
 npx wrangler whoami
 npx wrangler kv namespace list
-npx wrangler kv namespace create starklines-market-data-cache --binding MARKET_DATA_CACHE --update-config
-npx wrangler kv namespace create starklines-market-data-cache-staging --binding MARKET_DATA_CACHE --env staging --update-config
+npx wrangler kv namespace create ticker-line-market-data-cache --binding MARKET_DATA_CACHE --update-config
+npx wrangler kv namespace create ticker-line-market-data-cache-staging --binding MARKET_DATA_CACHE --env staging --update-config
 npm run cf:typegen
 npm run check
 npm run build:site
 npx wrangler deploy --env staging --secrets-file .dev.vars
 ```
 
-Capture the returned KV IDs in the appropriate top-level and `env.staging` bindings. Keep the resource names visible in comments beside opaque IDs. Configure `env.staging.name` as `starklines-api-staging`; the top-level production name remains `starklines-api`.
+Capture the returned KV IDs in the appropriate top-level and `env.staging` bindings. Keep the resource names visible in comments beside opaque IDs. Configure `env.staging.name` as `ticker-line-api-staging`; the top-level production name remains `ticker-line-api`, with `ticker-line.com` configured as its Custom Domain.
 
 Deploy staging before production and run HTTP plus Playwright smoke tests against its live `workers.dev` URL. Once the product domain is chosen and configured, repeat cache and embedding tests on the custom domain because that is the launch environment. A deployment is not considered tested merely because Wrangler uploaded it successfully.
 
@@ -1131,7 +1131,7 @@ Acceptance: static-without-JS content is complete; Playwright and Axe checks pas
 
 ### Slice 8: production hardening
 
-- Provision the named `starklines-*` resources, then configure rate limiting, deployed secrets, observability, alerts, staging domain, and load/outage tests.
+- Provision the named `ticker-line-*` resources, then configure rate limiting, deployed secrets, observability, alerts, staging domain, and load/outage tests.
 - Verify provider rights, attribution, incomplete-candle behavior, and caching on the deployed custom domain.
 
 Acceptance: every PRD launch gate has evidence or is explicitly marked blocked.
