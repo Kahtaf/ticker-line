@@ -28,6 +28,28 @@ document
     );
   });
 
+const themeToggle = document.querySelector<HTMLButtonElement>(
+  "[data-theme-toggle]",
+);
+
+themeToggle?.addEventListener("click", () => {
+  const current = document.documentElement.dataset.theme;
+  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = current
+    ? current === "dark"
+      ? "light"
+      : "dark"
+    : systemDark
+      ? "light"
+      : "dark";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem("ticker-line-theme", next);
+  } catch {
+    // The visual preference still applies when storage is unavailable.
+  }
+});
+
 const form = document.querySelector<HTMLFormElement>("[data-request-builder]");
 
 if (form) {

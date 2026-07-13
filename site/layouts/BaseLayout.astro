@@ -43,6 +43,12 @@ const socialImage = new URL('/social-card.png', siteOrigin)
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImage} />
+    <script is:inline>
+      try {
+        const savedTheme = localStorage.getItem('ticker-line-theme')
+        if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.dataset.theme = savedTheme
+      } catch {}
+    </script>
     <title>{title}</title>
     <slot name="head" />
   </head>

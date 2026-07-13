@@ -45,6 +45,21 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
   );
 });
 
+test("toggles and persists the site theme", async ({ page }) => {
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Toggle site theme" });
+
+  await page.evaluate(() => {
+    localStorage.setItem("ticker-line-theme", "light");
+    document.documentElement.dataset.theme = "light";
+  });
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
 test("updates the request URL and preview accessibly", async ({ page }) => {
   await page.goto("/");
   const builder = page.locator("[data-request-builder]");
