@@ -13,7 +13,6 @@ const htmlExample = `<img
   height="48"
 />`
 const markdownExample = `![AAPL price over one month](${directAbsoluteUrl})`
-const jsonUrl = `${directAbsoluteUrl}&format=json`
 const jsonExample = `{
   "ticker": "AAPL",
   "timeframe": "1m",
@@ -28,16 +27,16 @@ const jsonExample = `{
 
 const samples = [
   { ticker: 'AAPL', name: 'Apple' },
-  { ticker: 'BTC-USD', name: 'Bitcoin' },
+  { ticker: 'BTC/USD', name: 'Bitcoin' },
   { ticker: 'SPY', name: 'S&P 500' },
   { ticker: 'NAS100-USD', name: 'Nasdaq 100' },
   { ticker: 'XAU/USD', name: 'Gold' },
   { ticker: 'USD/CAD', name: 'USD / CAD' },
 ]
-const presets = samples.map(({ ticker }) => ticker)
+const presets = samples.map(({ ticker }) => ({ label: ticker, ticker }))
 
 const parameters = [
-  ['ticker', 'required', '—', 'Provider-supported symbol, normalized where safe.'],
+  ['ticker', 'required', '—', 'Use a supported London Strategic Edge symbol.'],
   ['timeframe', 'optional', '1m', '1d, 7d, 1m, 3m, 1y, or 5y.'],
   ['theme', 'optional', 'light', 'light or dark.'],
   ['fill', 'optional', 'false', 'Fill gains and losses to the chart reference line.'],
@@ -141,8 +140,8 @@ const structuredData = {
         <form class="request-builder" data-request-builder novalidate>
           <div class="preset-row" aria-label="Examples">
             <span>Examples</span>
-            {presets.map((ticker) => (
-              <a href={`/v1/sparkline?ticker=${encodeURIComponent(ticker)}&timeframe=1m`} data-ticker-preset={ticker}>{ticker}</a>
+            {presets.map(({ label, ticker }) => (
+              <a href={`/v1/sparkline?ticker=${encodeURIComponent(ticker)}&timeframe=1m`} data-ticker-preset={ticker}>{label}</a>
             ))}
           </div>
 
@@ -213,7 +212,7 @@ const structuredData = {
             <thead><tr><th>Name</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
               {parameters.map(([name, requirement, fallback, detail]) => (
-                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a> symbol. For LSE's <code>BTC/USD</code>, enter <code>BTC-USD</code> here.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
+                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a> symbol.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
               ))}
             </tbody>
           </table>
@@ -222,10 +221,9 @@ const structuredData = {
 
       <section id="response" aria-labelledby="response-title">
         <h2 id="response-title">Response</h2>
-        <p class="section-copy">Set <code>format=json</code> to return quote data and the rendered SVG in JSON.</p>
+        <p class="section-copy">Set <code>format=json</code> to return quote data and the rendered SVG in JSON. Leaving the <code>format</code> option out returns an embeddable SVG.</p>
         <div class="code-block">
           <pre tabindex="0"><code>{jsonExample}</code></pre>
-          <button type="button" data-copy={jsonUrl}>Copy URL</button>
         </div>
         <p class="section-copy"><code>price</code> is the latest close. Change values compare it with <code>referencePrice</code>; <code>changePercent</code> is expressed in percentage points.</p>
       </section>

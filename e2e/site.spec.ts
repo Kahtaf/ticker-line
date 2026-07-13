@@ -48,6 +48,10 @@ test("renders indexable documentation and a live product example", async ({
   await expect(page.getByRole("heading", { name: "Response" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
   await expect(page.getByText("format=json", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(0);
+  await expect(page.locator("#response .section-copy").first()).toHaveText(
+    "Set format=json to return quote data and the rendered SVG in JSON. Leaving the format option out returns an embeddable SVG.",
+  );
   await expect(page.getByText('"referencePrice": 296.34')).toBeVisible();
   await expect(
     page.getByText("changePercent is expressed in percentage points."),
@@ -70,6 +74,12 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
   await expect(builder.locator("[data-generated-url]")).toHaveAttribute(
     "href",
     /ticker=NAS100-USD/,
+  );
+
+  await builder.getByRole("link", { name: "BTC/USD" }).click();
+  await expect(builder.getByLabel("Ticker")).toHaveValue("BTC/USD");
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "ticker=BTC%2FUSD",
   );
 });
 
@@ -123,13 +133,13 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   await page.goto("/");
   const builder = page.locator("[data-request-builder]");
 
-  await builder.getByLabel("Ticker").fill("btc-usd");
+  await builder.getByLabel("Ticker").fill("btc/usd");
   await builder.getByLabel("Timeframe").selectOption("7d");
   await builder.getByLabel("Theme").selectOption("dark");
   await builder.getByLabel("Fill").selectOption("true");
 
   await expect(builder.locator("[data-generated-url]")).toContainText(
-    "ticker=BTC-USD",
+    "ticker=BTC%2FUSD",
   );
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "timeframe=7d",
@@ -142,7 +152,7 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   );
   await expect(builder.locator("[data-preview-image]")).toHaveAttribute(
     "alt",
-    "BTC-USD price over seven days",
+    "BTC/USD price over seven days",
   );
   await expect(builder.locator("[data-generated-url]")).toHaveText(
     /^https:\/\/ticker-line\.com\/v1\/sparkline\?/,
@@ -162,6 +172,7 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD",
   );
+  await expect(page.locator(".docs-nav")).toBeHidden();
   await expect(page.locator(".compact-code code")).toHaveText(
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m",
   );
@@ -189,8 +200,33 @@ test("links ticker guidance to the LSE catalog", async ({ page }) => {
       "https://londonstrategicedge.com/data/#overview",
     );
   }
-  await expect(page.getByText("BTC/USD", { exact: true })).toBeVisible();
-  await expect(page.getByText("BTC-USD", { exact: true }).last()).toBeVisible();
+  await expect(
+    page.locator("#request tbody tr").first().locator("td").nth(2),
+  ).toHaveText("Use a supported London Strategic Edge symbol.");
+});
+
+test("styles inline code and omits section dividers", async ({ page }) => {
+  await page.goto("/");
+  const inlineCode = page.locator("#response .section-copy code").first();
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "light";
+  });
+  await expect(inlineCode).toHaveCSS("background-color", "rgb(242, 242, 242)");
+  await expect(page.locator("#usage")).toHaveCSS("border-bottom-style", "none");
+  await expect(page.locator(".site-footer")).toHaveCSS(
+    "border-top-style",
+    "none",
+  );
+  await expect(page.locator(".site-header")).toHaveCSS(
+    "border-bottom-style",
+    "none",
+  );
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "dark";
+  });
+  await expect(inlineCode).toHaveCSS("background-color", "rgb(26, 26, 26)");
 });
 
 test("shows the project and author footer links", async ({ page }) => {
