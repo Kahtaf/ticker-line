@@ -4,13 +4,33 @@ import { expect, test } from "@playwright/test";
 const validSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48"><title>Test chart</title><path d="M2 40L42 30L82 34L122 12L158 8" fill="none" stroke="#236b43" stroke-width="2"/></svg>`;
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/v1/sparkline?*", (route) =>
-    route.fulfill({
+  await page.route("**/v1/sparkline?*", (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.searchParams.get("format") === "json") {
+      const ticker = requestUrl.searchParams.get("ticker") ?? "AAPL";
+      const isDown = ticker === "USD/CAD";
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json; charset=utf-8",
+        body: JSON.stringify({
+          ticker,
+          timeframe: "1d",
+          price: isDown ? 98.25 : 123.45,
+          referencePrice: 120,
+          change: isDown ? -1.75 : 3.45,
+          changePercent: isDown ? -1.75 : 2.88,
+          direction: isDown ? "down" : "up",
+          dataAsOf: "2026-07-10T00:00:00.000Z",
+          svg: validSvg,
+        }),
+      });
+    }
+    return route.fulfill({
       status: 200,
       contentType: "image/svg+xml; charset=utf-8",
       body: validSvg,
-    }),
-  );
+    });
+  });
 });
 
 test("renders indexable documentation and a live product example", async ({
@@ -48,6 +68,37 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
   await expect(builder.locator("[data-generated-url]")).toHaveAttribute(
     "href",
     /ticker=NAS100-USD/,
+  );
+});
+
+test("renders six market cards and synchronizes a card selection", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const cards = page.locator("[data-market-card]");
+  const gold = page.getByRole("button", { name: "Use Gold, XAU/USD" });
+  const builder = page.locator("[data-request-builder]");
+
+  await expect(cards).toHaveCount(6);
+  await expect(cards.first()).toHaveAttribute("data-market-state", "ready");
+  await expect(cards.first().locator("[data-market-price]")).toHaveText(
+    "123.45",
+  );
+
+  await gold.click();
+
+  await expect(gold).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-live-url]")).toHaveText(
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1d",
+  );
+  await expect(builder.getByLabel("Ticker")).toHaveValue("XAU/USD");
+  await expect(builder.getByLabel("Timeframe")).toHaveValue("1d");
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "ticker=XAU%2FUSD&timeframe=1d",
+  );
+  await expect(builder.locator("[data-preview-image]")).toHaveAttribute(
+    "alt",
+    "XAU/USD price over one day",
   );
 });
 
@@ -110,7 +161,7 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD",
   );
   await expect(page.locator(".compact-code code")).toHaveText(
-    "https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m",
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m",
   );
   expect(
     await page

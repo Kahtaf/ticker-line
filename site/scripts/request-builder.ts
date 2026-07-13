@@ -10,6 +10,182 @@ const TIMEFRAME_LABELS: Record<string, string> = {
 const PUBLIC_API_ORIGIN = "https://ticker-line.com";
 const TICKER_PATTERN = /^[A-Z0-9./^=_-]{1,32}$/;
 
+type MarketDirection = "up" | "down" | "flat";
+type MarketQuote = Readonly<{
+  price: number;
+  change: number;
+  changePercent: number | null;
+  direction: MarketDirection;
+  svg: string;
+}>;
+
+const marketCards = [
+  ...document.querySelectorAll<HTMLButtonElement>("[data-market-card]"),
+];
+const liveUrl = document.querySelector<HTMLElement>("[data-live-url]");
+const liveUrlCopy = document.querySelector<HTMLButtonElement>(
+  "[data-copy-live-url]",
+);
+const priceFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4,
+});
+let marketLoadVersion = 0;
+
+function resolvedSiteTheme(): "light" | "dark" {
+  const explicit = document.documentElement.dataset.theme;
+  if (explicit === "light" || explicit === "dark") return explicit;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function formatSigned(value: number): string {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}${priceFormatter.format(Math.abs(value))}`;
+}
+
+function isMarketQuote(value: unknown): value is MarketQuote {
+  if (typeof value !== "object" || value === null) return false;
+  const quote = value as Partial<MarketQuote>;
+  return (
+    typeof quote.price === "number" &&
+    Number.isFinite(quote.price) &&
+    typeof quote.change === "number" &&
+    Number.isFinite(quote.change) &&
+    (quote.changePercent === null ||
+      (typeof quote.changePercent === "number" &&
+        Number.isFinite(quote.changePercent))) &&
+    (quote.direction === "up" ||
+      quote.direction === "down" ||
+      quote.direction === "flat") &&
+    typeof quote.svg === "string"
+  );
+}
+
+function svgElement(source: string): SVGSVGElement | undefined {
+  const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
+  const root = parsed.documentElement;
+  if (
+    root.localName !== "svg" ||
+    root.namespaceURI !== "http://www.w3.org/2000/svg"
+  )
+    return undefined;
+  return document.importNode(root, true) as unknown as SVGSVGElement;
+}
+
+function updateLiveUrl(ticker: string, timeframe: string): void {
+  const params = new URLSearchParams({ ticker, timeframe });
+  const nextUrl = new URL(
+    `/v1/sparkline?${params.toString()}`,
+    PUBLIC_API_ORIGIN,
+  ).href;
+  if (liveUrl) liveUrl.textContent = nextUrl;
+  if (liveUrlCopy) liveUrlCopy.dataset.copy = nextUrl;
+}
+
+function selectMarketCard(ticker: string, timeframe: string): void {
+  for (const card of marketCards) {
+    card.setAttribute(
+      "aria-pressed",
+      String(timeframe === "1d" && card.dataset.ticker === ticker),
+    );
+  }
+}
+
+async function loadMarketCard(
+  card: HTMLButtonElement,
+  theme: "light" | "dark",
+  version: number,
+  attempt = 0,
+): Promise<void> {
+  const ticker = card.dataset.ticker;
+  if (ticker === undefined) return;
+  card.dataset.marketState = "loading";
+  const params = new URLSearchParams({
+    ticker,
+    timeframe: "1d",
+    theme,
+    fill: "true",
+    format: "json",
+  });
+  try {
+    const response = await fetch(`/v1/sparkline?${params.toString()}`);
+    if (response.status === 429 && attempt === 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      if (version === marketLoadVersion) {
+        return loadMarketCard(card, theme, version, attempt + 1);
+      }
+      return;
+    }
+    if (!response.ok)
+      throw new Error(`Quote request failed: ${response.status}`);
+    const payload: unknown = await response.json();
+    if (!isMarketQuote(payload)) throw new Error("Invalid quote response");
+    if (version !== marketLoadVersion) return;
+
+    const price = card.querySelector<HTMLElement>("[data-market-price]");
+    const change = card.querySelector<HTMLElement>("[data-market-change]");
+    const performance = card.querySelector<HTMLElement>(
+      "[data-market-performance]",
+    );
+    const percent = card.querySelector<HTMLElement>("[data-market-percent]");
+    const direction = card.querySelector<HTMLElement>(".market-direction");
+    const chart = card.querySelector<HTMLElement>("[data-market-chart]");
+    if (price) price.textContent = priceFormatter.format(payload.price);
+    if (change) change.textContent = `(${formatSigned(payload.change)})`;
+    if (performance) performance.dataset.direction = payload.direction;
+    if (percent) {
+      percent.textContent =
+        payload.changePercent === null
+          ? "—"
+          : `${formatSigned(payload.changePercent)}%`;
+    }
+    if (direction) {
+      direction.textContent =
+        payload.direction === "up"
+          ? "↑"
+          : payload.direction === "down"
+            ? "↓"
+            : "–";
+    }
+    const svg = svgElement(payload.svg);
+    if (chart && svg) chart.replaceChildren(svg);
+    card.dataset.marketState = "ready";
+  } catch {
+    if (version === marketLoadVersion) card.dataset.marketState = "error";
+  }
+}
+
+function loadMarketCards(): void {
+  marketLoadVersion += 1;
+  const version = marketLoadVersion;
+  const theme = resolvedSiteTheme();
+  for (const [index, card] of marketCards.entries()) {
+    window.setTimeout(() => {
+      if (version === marketLoadVersion) {
+        void loadMarketCard(card, theme, version);
+      }
+    }, index * 300);
+  }
+}
+
+for (const card of marketCards) {
+  card.addEventListener("click", () => {
+    const ticker = card.dataset.ticker;
+    if (ticker === undefined) return;
+    updateLiveUrl(ticker, "1d");
+    selectMarketCard(ticker, "1d");
+    document.dispatchEvent(
+      new CustomEvent("ticker-line:select-sample", {
+        detail: { ticker, timeframe: "1d" },
+      }),
+    );
+  });
+}
+
+loadMarketCards();
+
 function copyText(text: string, button: HTMLButtonElement) {
   const original = button.textContent ?? "Copy";
   navigator.clipboard.writeText(text).then(
@@ -49,6 +225,7 @@ themeToggle?.addEventListener("click", () => {
   } catch {
     // The visual preference still applies when storage is unavailable.
   }
+  loadMarketCards();
 });
 
 const form = document.querySelector<HTMLFormElement>("[data-request-builder]");
@@ -100,6 +277,9 @@ if (form) {
     const nextPath = `/v1/sparkline?${params.toString()}`;
     const nextUrl = new URL(nextPath, PUBLIC_API_ORIGIN).href;
 
+    updateLiveUrl(ticker, timeframeInput.value);
+    selectMarketCard(ticker, timeframeInput.value);
+
     if (generated) {
       generated.textContent = nextUrl;
       generated.href = nextUrl;
@@ -127,6 +307,15 @@ if (form) {
         tickerInput.focus();
       });
     });
+
+  document.addEventListener("ticker-line:select-sample", (event) => {
+    const detail = (event as CustomEvent<{ ticker: string; timeframe: string }>)
+      .detail;
+    if (!tickerInput || !timeframeInput || detail === undefined) return;
+    tickerInput.value = detail.ticker;
+    timeframeInput.value = detail.timeframe;
+    update();
+  });
 
   image?.addEventListener("load", () => {
     if (frame) frame.dataset.previewState = "ready";

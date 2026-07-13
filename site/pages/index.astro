@@ -26,7 +26,15 @@ const jsonExample = `{
   "svg": "<svg ...>...</svg>"
 }`
 
-const presets = ['AAPL', 'BTC-USD', 'SPY', 'NAS100-USD', 'XAU/USD', 'USD/CAD']
+const samples = [
+  { ticker: 'AAPL', name: 'Apple' },
+  { ticker: 'BTC-USD', name: 'Bitcoin' },
+  { ticker: 'SPY', name: 'S&P 500' },
+  { ticker: 'NAS100-USD', name: 'Nasdaq 100' },
+  { ticker: 'XAU/USD', name: 'Gold' },
+  { ticker: 'USD/CAD', name: 'USD / CAD' },
+]
+const presets = samples.map(({ ticker }) => ticker)
 
 const parameters = [
   ['ticker', 'required', '—', 'Provider-supported symbol, normalized where safe.'],
@@ -92,9 +100,36 @@ const structuredData = {
       <section class="intro" id="start">
         <h1>Render market sparklines through a URL</h1>
         <p>Use a live, cacheable SVG in HTML, Markdown, dashboards, or anywhere else an image works.</p>
+        <div class="market-rail" role="group" aria-label="Example market charts" data-market-rail>
+          {samples.map(({ ticker, name }) => (
+            <button
+              type="button"
+              class="market-card"
+              aria-label={`Use ${name}, ${ticker}`}
+              aria-pressed="false"
+              data-market-card
+              data-ticker={ticker}
+              data-market-state="loading"
+            >
+              <span class="market-card-heading">
+                <span class="market-name">{name}</span>
+                <span class="market-symbol">{ticker}</span>
+              </span>
+              <span class="market-price" data-market-price>—</span>
+              <span class="market-change" data-market-change>—</span>
+              <span class="market-performance" data-market-performance data-direction="flat">
+                <span data-market-percent>—</span>
+                <span class="market-direction" aria-hidden="true">–</span>
+              </span>
+              <span class="market-chart" data-market-chart aria-hidden="true">
+                <svg viewBox="0 0 160 48"><path d="M4 30 24 27 44 31 64 22 84 25 104 17 124 20 144 12 156 14" /></svg>
+              </span>
+            </button>
+          ))}
+        </div>
         <div class="code-block compact-code">
-          <code>{directAbsoluteUrl}</code>
-          <button type="button" data-copy={directAbsoluteUrl}>Copy</button>
+          <code data-live-url>{directAbsoluteUrl}</code>
+          <button type="button" data-copy={directAbsoluteUrl} data-copy-live-url>Copy</button>
         </div>
       </section>
 
