@@ -743,12 +743,18 @@ td small {
 
 .site-footer {
   display: flex;
+  align-items: start;
   justify-content: space-between;
   gap: 24px;
   border-top: 1px solid var(--border-100);
   padding-block: 28px 44px;
   color: var(--foreground-700);
   font-size: 0.72rem;
+}
+.footer-links {
+  display: grid;
+  gap: 2px;
+  text-align: right;
 }
 .not-found {
   display: grid;
@@ -872,6 +878,9 @@ td small {
   }
   .site-footer {
     flex-direction: column;
+  }
+  .footer-links {
+    text-align: left;
   }
 }
 

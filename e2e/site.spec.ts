@@ -40,12 +40,14 @@ test("renders indexable documentation and a live product example", async ({
 
   await expect(page).toHaveTitle(/Ticker Line/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Render market sparklines through a URL",
+    "Market sparklines through a URL",
   );
   await expect(page.getByText("Public API · v1")).toHaveCount(0);
   await expect(page.getByText("Live preview")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Parameters" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Request" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Response" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(page.getByText("format=json", { exact: true })).toBeVisible();
   await expect(page.getByText('"referencePrice": 296.34')).toBeVisible();
   await expect(
     page.getByText("changePercent is expressed in percentage points."),
@@ -177,9 +179,31 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
 
 test("links ticker guidance to the LSE catalog", async ({ page }) => {
   await page.goto("/");
-  await expect(
-    page.getByRole("link", { name: "London Strategic Edge" }),
-  ).toHaveAttribute("href", "https://londonstrategicedge.com/data#overview");
+  const guidanceLinks = page.getByRole("link", {
+    name: "London Strategic Edge",
+  });
+  await expect(guidanceLinks).toHaveCount(2);
+  for (const link of await guidanceLinks.all()) {
+    await expect(link).toHaveAttribute(
+      "href",
+      "https://londonstrategicedge.com/data/#overview",
+    );
+  }
+  await expect(page.getByText("BTC/USD", { exact: true })).toBeVisible();
+  await expect(page.getByText("BTC-USD", { exact: true }).last()).toBeVisible();
+});
+
+test("shows the project and author footer links", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("link", { name: "OpenCandle" })).toHaveAttribute(
+    "href",
+    "https://github.com/kahtaf/OpenCandle",
+  );
+  await expect(page.getByRole("link", { name: "Kahtaf" })).toHaveAttribute(
+    "href",
+    "https://kahtaf.com",
+  );
 });
 
 test("reports invalid ticker input without issuing a new preview request", async ({

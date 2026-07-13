@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 
 const description =
-  'Generate a cacheable market sparkline from one URL. No SDK, account, or client-side charting library required.'
+  'Embed sparklines of stock, crypto, indices and more in HTML, markdown, and anywhere else images work.'
 
 const directUrl = '/v1/sparkline?ticker=AAPL&timeframe=1m'
 const directAbsoluteUrl = `https://ticker-line.com${directUrl}`
@@ -64,7 +64,7 @@ const structuredData = {
 }
 ---
 
-<BaseLayout title="Ticker Line — Render market sparklines through a URL" description={description}>
+<BaseLayout title="Ticker Line — Market sparklines through a URL" description={description}>
   <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
   <header class="site-header">
@@ -91,15 +91,16 @@ const structuredData = {
       <a href="#try">Try it</a>
       <a href="#usage">Usage</a>
       <p>Reference</p>
-      <a href="#parameters">Parameters</a>
+      <a href="#request">Request</a>
+      <a href="#response">Response</a>
       <a href="#errors">Errors</a>
       <a href="#freshness">Freshness</a>
     </aside>
 
     <article class="docs-content">
       <section class="intro" id="start">
-        <h1>Render market sparklines through a URL</h1>
-        <p>Use a live, cacheable SVG in HTML, Markdown, dashboards, or anywhere else an image works.</p>
+        <h1>Market sparklines through a URL</h1>
+        <p>Embed sparklines of stock, crypto, indices and more in HTML, markdown, and anywhere else images work.</p>
         <div class="market-rail" role="group" aria-label="Example market charts" data-market-rail>
           {samples.map(({ ticker, name }) => (
             <button
@@ -134,8 +135,8 @@ const structuredData = {
       </section>
 
       <section id="try" aria-labelledby="try-title">
-        <h2 id="try-title">Try it</h2>
-        <p class="section-copy">Choose an example or enter a symbol. The URL and preview update together.</p>
+        <h2 id="try-title">Try it yourself</h2>
+        <p class="section-copy">Choose an example or enter a symbol. The ticker must be supported by <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a>.</p>
 
         <form class="request-builder" data-request-builder novalidate>
           <div class="preset-row" aria-label="Examples">
@@ -203,26 +204,30 @@ const structuredData = {
           <pre tabindex="0"><code>{markdownExample}</code></pre>
           <button type="button" data-copy={markdownExample}>Copy</button>
         </div>
-        <p class="code-label">JSON</p>
-        <div class="code-block">
-          <pre tabindex="0"><code>{jsonExample}</code></pre>
-          <button type="button" data-copy={jsonUrl}>Copy URL</button>
-        </div>
-        <p class="section-copy"><code>price</code> is the latest close. Change values compare it with <code>referencePrice</code>; <code>changePercent</code> is expressed in percentage points.</p>
       </section>
 
-      <section id="parameters" aria-labelledby="parameters-title">
-        <h2 id="parameters-title">Parameters</h2>
+      <section id="request" aria-labelledby="request-title">
+        <h2 id="request-title">Request</h2>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Name</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
               {parameters.map(([name, requirement, fallback, detail]) => (
-                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a valid ticker from <a href="https://londonstrategicedge.com/data#overview">London Strategic Edge</a>; normalized where safe.</> : detail}</td></tr>
+                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a> symbol. For LSE's <code>BTC/USD</code>, enter <code>BTC-USD</code> here.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
               ))}
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section id="response" aria-labelledby="response-title">
+        <h2 id="response-title">Response</h2>
+        <p class="section-copy">Set <code>format=json</code> to return quote data and the rendered SVG in JSON.</p>
+        <div class="code-block">
+          <pre tabindex="0"><code>{jsonExample}</code></pre>
+          <button type="button" data-copy={jsonUrl}>Copy URL</button>
+        </div>
+        <p class="section-copy"><code>price</code> is the latest close. Change values compare it with <code>referencePrice</code>; <code>changePercent</code> is expressed in percentage points.</p>
       </section>
 
       <section id="errors" aria-labelledby="errors-title">
@@ -246,14 +251,17 @@ X-Error-Status: 404</code></pre>
 
       <section id="terms" aria-labelledby="terms-title">
         <h2 id="terms-title">Terms</h2>
-        <p>Free to call without an API key. Cache responses, avoid needless polling, and do not bypass rate limits. Charts may be delayed or contain errors and are not financial advice.</p>
+        <p>Free to call without an API key. Cache responses and avoid needless polling. Charts may be delayed or contain errors and are not financial advice.</p>
       </section>
     </article>
   </main>
 
   <footer class="site-footer shell">
     <span>© 2026 Ticker Line</span>
-    <span>Market data via licensed upstream sources.</span>
+    <span class="footer-links">
+      <span><a href="https://github.com/kahtaf/OpenCandle">OpenCandle</a> — Open source financial analyst.</span>
+      <span>Made by <a href="https://kahtaf.com">Kahtaf</a>.</span>
+    </span>
   </footer>
 
   <script>
