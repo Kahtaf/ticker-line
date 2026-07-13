@@ -499,7 +499,7 @@ Validate the raw query as a record before applying defaults:
 - Reject every unknown key.
 - Require exactly one `ticker`.
 - Trim ticker, then validate length and allowed characters before uppercasing.
-- Permit only an explicit conservative ticker character set such as ASCII letters, digits, `.`, `-`, `^`, `=`, and `_`; revise only from tested provider requirements.
+- Permit only an explicit conservative ticker character set: ASCII letters, digits, `.`, `/`, `-`, `^`, `=`, and `_`. Slash is required by verified LSE symbols such as `XAU/USD` and `USD/CAD` and is accepted only inside the query value.
 - Reject control characters, percent-decoded separators, empty values, and overlong URLs.
 - Treat documented enum values as lowercase. Accept only literal `false` or `true` for `fill`; keep `timeframe`, `theme`, `fill`, and `format` lowercase-only.
 - Apply defaults only after the submitted values are valid.
@@ -673,21 +673,21 @@ Starting active-market values:
 
 | Timeframe | Preferred source interval | Fresh | Serve stale after provider failure |
 | --- | --- | --- | --- |
-| `1d` | 5–15 minutes | 2–3 minutes | 1 hour |
-| `7d` | 30–60 minutes | 10 minutes | 6 hours |
-| `1m` | Daily | 30 minutes | 24 hours |
-| `3m` | Daily | 60 minutes | 24 hours |
-| `1y` | Daily | 2 hours | 3 days |
-| `5y` | Weekly/downsampled daily | 12 hours | 7 days |
+| `1d` | 5–15 minutes | 25 minutes | 1 hour |
+| `7d` | 30–60 minutes | 100 minutes | 6 hours |
+| `1m` | Daily | 5 hours | 24 hours |
+| `3m` | Daily | 10 hours | 24 hours |
+| `1y` | Daily | 20 hours | 3 days |
+| `5y` | Weekly/downsampled daily | 5 days | 7 days |
 
 Crypto uses active-market values continuously. For exchange-listed assets, an adapter may provide trusted market-state or next-session metadata. If it does, expire shortly after the next expected meaningful update while the market is closed. If reliable calendar information is unavailable, use conservative fixed TTLs; do not guess holidays and present the result as authoritative.
 
 The final candle is provisional when the provider supplies an incomplete candle. Preserve it for freshness and document the behavior. If the provider returns closed candles only, align `freshUntil` to the next expected candle publication rather than polling repeatedly inside the candle.
 
-Browser `max-age` should normally be 60 seconds. Shared or application cache lifetime may be longer. Example public header for a ten-minute active data lifetime:
+Browser `max-age` should normally be 60 seconds. Shared or application cache lifetime may be longer. Example public header for a 100-minute active data lifetime:
 
 ```http
-Cache-Control: public, max-age=60, s-maxage=600, stale-while-revalidate=3600, stale-if-error=86400
+Cache-Control: public, max-age=60, s-maxage=6000, stale-while-revalidate=3600, stale-if-error=86400
 ```
 
 These directives benefit browsers and compatible intermediaries. They do not change the documented behavior of `caches.default`.
@@ -736,7 +736,7 @@ The adapter must not:
 
 The live evaluation used the configured `LSE_API_KEY` without printing or persisting it outside `.dev.vars`.
 
-| Concern | Verified behavior on 2026-07-12 |
+| Concern | Verified behavior through 2026-07-13 |
 | --- | --- |
 | Base URL | `https://api.londonstrategicedge.com/vault` |
 | Authentication | `x-api-key` request header |
@@ -757,12 +757,13 @@ Observed representative payloads:
 - BTC/USD hourly returned current continuous-market rows with the same OHLCV shape.
 - The full `/catalog` response was about 8.5 MB and 22,678 entries.
 - `VOD.L` and `VOD` both succeeded as distinct instruments.
+- `NAS100/USD`, `XAU/USD`, and `USD/CAD` returned populated daily candles and resolved to those exact provider symbols.
 - The newest one-minute crypto candle was provisional and advanced on the next minute boundary.
 - Candle rows exposed no currency, exchange, timezone, or asset-type metadata.
 
 Conclusions for the adapter:
 
-- Map the public canonical alias `BTC-USD` to LSE's `BTC/USD` before fetching. Keep alias mapping provider-specific and explicitly tested.
+- Map friendly public aliases such as `BTC-USD` and `NAS100-USD` to LSE's slash symbols before fetching. Preserve verified exact provider symbols such as `XAU/USD` and `USD/CAD`. Keep every mapping provider-specific and explicitly tested.
 - Use `15m`, `1h`, `1d`, and `1w` for the initial public timeframe mapping. The provider has ample resolution coverage for the PRD target sizes.
 - Retain LSE's supplied extended-hours equity candles instead of adding exchange-session filtering in MVP.
 - For a `1d` equity request during a weekend or holiday, fetch and display the most recent available trading session rather than failing on an empty current-calendar-day range.

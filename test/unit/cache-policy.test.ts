@@ -3,12 +3,12 @@ import { defaultFreshnessPolicy } from "../../src/cache/policy";
 
 describe("defaultFreshnessPolicy", () => {
   it.each([
-    ["1d", 150, 3_600],
-    ["7d", 600, 21_600],
-    ["1m", 1_800, 86_400],
-    ["3m", 3_600, 86_400],
-    ["1y", 7_200, 259_200],
-    ["5y", 43_200, 604_800],
+    ["1d", 1_500, 3_600],
+    ["7d", 6_000, 21_600],
+    ["1m", 18_000, 86_400],
+    ["3m", 36_000, 86_400],
+    ["1y", 72_000, 259_200],
+    ["5y", 432_000, 604_800],
   ] as const)(
     "uses the configured %s active policy",
     (timeframe, fresh, stale) => {

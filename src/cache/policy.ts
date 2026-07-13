@@ -27,12 +27,12 @@ const ACTIVE_POLICY: Readonly<
     Readonly<{ freshForSeconds: number; staleForSeconds: number }>
   >
 > = {
-  "1d": { freshForSeconds: 150, staleForSeconds: 3_600 },
-  "7d": { freshForSeconds: 600, staleForSeconds: 21_600 },
-  "1m": { freshForSeconds: 1_800, staleForSeconds: 86_400 },
-  "3m": { freshForSeconds: 3_600, staleForSeconds: 86_400 },
-  "1y": { freshForSeconds: 7_200, staleForSeconds: 259_200 },
-  "5y": { freshForSeconds: 43_200, staleForSeconds: 604_800 },
+  "1d": { freshForSeconds: 1_500, staleForSeconds: 3_600 },
+  "7d": { freshForSeconds: 6_000, staleForSeconds: 21_600 },
+  "1m": { freshForSeconds: 18_000, staleForSeconds: 86_400 },
+  "3m": { freshForSeconds: 36_000, staleForSeconds: 86_400 },
+  "1y": { freshForSeconds: 72_000, staleForSeconds: 259_200 },
+  "5y": { freshForSeconds: 432_000, staleForSeconds: 604_800 },
 };
 
 export const defaultFreshnessPolicy: FreshnessPolicy = {
