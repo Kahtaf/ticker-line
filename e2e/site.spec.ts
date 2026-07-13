@@ -20,8 +20,10 @@ test("renders indexable documentation and a live product example", async ({
 
   await expect(page).toHaveTitle(/Ticker Line/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Market sparklines in one URL.",
+    "Render market sparklines through a URL",
   );
+  await expect(page.getByText("Public API · v1")).toHaveCount(0);
+  await expect(page.getByText("Live preview")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Parameters" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
   await expect(
@@ -33,15 +35,15 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
   await page.goto("/");
   const builder = page.locator("[data-request-builder]");
 
-  await builder.getByRole("link", { name: "BTC-USD" }).click();
+  await builder.getByRole("link", { name: "NAS100-USD" }).click();
 
-  await expect(builder.getByLabel("Ticker")).toHaveValue("BTC-USD");
+  await expect(builder.getByLabel("Ticker")).toHaveValue("NAS100-USD");
   await expect(builder.locator("[data-generated-url]")).toContainText(
-    "ticker=BTC-USD",
+    "https://ticker-line.com/v1/sparkline?ticker=NAS100-USD",
   );
   await expect(builder.locator("[data-generated-url]")).toHaveAttribute(
     "href",
-    /ticker=BTC-USD/,
+    /ticker=NAS100-USD/,
   );
 });
 
@@ -85,9 +87,44 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
     "alt",
     "BTC-USD price over seven days",
   );
-  await expect(builder.locator("[data-preview-status]")).toHaveText(
-    "Live preview",
+  await expect(builder.locator("[data-generated-url]")).toHaveText(
+    /^https:\/\/ticker-line\.com\/v1\/sparkline\?/,
   );
+});
+
+test("accepts slash tickers and wraps complete URLs on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const builder = page.locator("[data-request-builder]");
+
+  await builder.getByRole("link", { name: "XAU/USD" }).click();
+
+  await expect(builder.getByLabel("Ticker")).toHaveValue("XAU/USD");
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD",
+  );
+  await expect(page.locator(".compact-code code")).toHaveText(
+    "https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m",
+  );
+  expect(
+    await page
+      .locator(".compact-code code")
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+  expect(
+    await builder
+      .locator("[data-generated-url]")
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+});
+
+test("links ticker guidance to the LSE catalog", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("link", { name: "London Strategic Edge" }),
+  ).toHaveAttribute("href", "https://londonstrategicedge.com/data#overview");
 });
 
 test("reports invalid ticker input without issuing a new preview request", async ({

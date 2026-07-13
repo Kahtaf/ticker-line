@@ -7,7 +7,8 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   "5y": "five years",
 };
 
-const TICKER_PATTERN = /^[A-Z0-9.^=_-]{1,32}$/;
+const PUBLIC_API_ORIGIN = "https://ticker-line.com";
+const TICKER_PATTERN = /^[A-Z0-9./^=_-]{1,32}$/;
 
 function copyText(text: string, button: HTMLButtonElement) {
   const original = button.textContent ?? "Copy";
@@ -67,7 +68,6 @@ if (form) {
   ) as unknown as HTMLSelectElement | null;
   const image = form.querySelector<HTMLImageElement>("[data-preview-image]");
   const frame = form.querySelector<HTMLElement>(".preview-frame");
-  const status = form.querySelector<HTMLElement>("[data-preview-status]");
   const generated = form.querySelector<HTMLAnchorElement>(
     "[data-generated-url]",
   );
@@ -97,17 +97,17 @@ if (form) {
       theme: themeInput.value,
       fill: fillInput.value,
     });
-    const nextUrl = `/v1/sparkline?${params.toString()}`;
+    const nextPath = `/v1/sparkline?${params.toString()}`;
+    const nextUrl = new URL(nextPath, PUBLIC_API_ORIGIN).href;
 
     if (generated) {
       generated.textContent = nextUrl;
       generated.href = nextUrl;
     }
     if (frame) frame.dataset.previewState = "loading";
-    if (status) status.textContent = "Loading preview";
     if (image) {
       image.alt = `${ticker} price over ${TIMEFRAME_LABELS[timeframeInput.value]}`;
-      image.src = nextUrl;
+      image.src = nextPath;
     }
   };
 
@@ -130,12 +130,10 @@ if (form) {
 
   image?.addEventListener("load", () => {
     if (frame) frame.dataset.previewState = "ready";
-    if (status) status.textContent = "Live preview";
   });
 
   image?.addEventListener("error", () => {
     if (frame) frame.dataset.previewState = "error";
-    if (status) status.textContent = "Preview unavailable";
   });
 
   copyButton?.addEventListener("click", () =>

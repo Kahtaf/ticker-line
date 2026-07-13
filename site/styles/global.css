@@ -312,12 +312,11 @@ h2 {
 }
 .compact-code {
   margin-top: 28px;
-  white-space: nowrap;
 }
 .compact-code code {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .code-block button,
 .generated-url button {
@@ -417,7 +416,7 @@ h2 {
   min-height: 210px;
   place-items: center;
   border-block: 1px solid var(--border-100);
-  padding: 48px 30px 30px;
+  padding: 30px;
   background-color: var(--background-200);
   background-image:
     linear-gradient(var(--border-100) 1px, transparent 1px),
@@ -438,20 +437,6 @@ h2 {
 .preview-frame img {
   width: min(100%, 480px);
   height: auto;
-}
-.preview-status {
-  position: absolute;
-  z-index: 2;
-  top: 13px;
-  left: 16px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--border-100);
-  border-radius: 999px;
-  padding: 2px 8px;
-  background: var(--background-100);
-  color: var(--foreground-600);
-  font-size: 0.68rem;
 }
 .preview-skeleton,
 .preview-error {
@@ -487,11 +472,10 @@ h2 {
 }
 .generated-url a {
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   font-family: "Geist Mono Variable", "Geist Mono", monospace;
   font-size: 0.7rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .table-wrap {

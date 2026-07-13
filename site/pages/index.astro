@@ -2,18 +2,19 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 
 const description =
-  'Generate a cacheable stock or crypto sparkline from one URL. No SDK, account, or client-side charting library required.'
+  'Generate a cacheable market sparkline from one URL. No SDK, account, or client-side charting library required.'
 
 const directUrl = '/v1/sparkline?ticker=AAPL&timeframe=1m'
+const directAbsoluteUrl = `https://ticker-line.com${directUrl}`
 const htmlExample = `<img
-  src="https://ticker-line.com${directUrl}"
+  src="${directAbsoluteUrl}"
   alt="AAPL price over one month"
   width="160"
   height="48"
 />`
-const markdownExample = `![AAPL price over one month](https://ticker-line.com${directUrl})`
+const markdownExample = `![AAPL price over one month](${directAbsoluteUrl})`
 
-const presets = ['AAPL', 'BTC-USD', 'SPY', 'MSFT', 'NVDA', 'VOD.L']
+const presets = ['AAPL', 'BTC-USD', 'SPY', 'NAS100-USD', 'XAU/USD', 'USD/CAD']
 
 const parameters = [
   ['ticker', 'required', '—', 'Provider-supported symbol, normalized where safe.'],
@@ -43,7 +44,7 @@ const structuredData = {
 }
 ---
 
-<BaseLayout title="Ticker Line — Market sparklines in one URL" description={description}>
+<BaseLayout title="Ticker Line — Render market sparklines through a URL" description={description}>
   <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
   <header class="site-header">
@@ -77,12 +78,11 @@ const structuredData = {
 
     <article class="docs-content">
       <section class="intro" id="start">
-        <p class="kicker"><span></span> Public API · v1</p>
-        <h1>Market sparklines <span>in one URL.</span></h1>
-        <p>Use a live, cacheable SVG in HTML, Markdown, dashboards, bots, or anywhere else an image works.</p>
+        <h1>Render market sparklines through a URL</h1>
+        <p>Use a live, cacheable SVG in HTML, Markdown, dashboards, or anywhere else an image works.</p>
         <div class="code-block compact-code">
-          <code>https://ticker-line.com{directUrl}</code>
-          <button type="button" data-copy={`https://ticker-line.com${directUrl}`}>Copy</button>
+          <code>{directAbsoluteUrl}</code>
+          <button type="button" data-copy={directAbsoluteUrl}>Copy</button>
         </div>
       </section>
 
@@ -94,7 +94,7 @@ const structuredData = {
           <div class="preset-row" aria-label="Examples">
             <span>Examples</span>
             {presets.map((ticker) => (
-              <a href={`/v1/sparkline?ticker=${ticker}&timeframe=1m`} data-ticker-preset={ticker}>{ticker}</a>
+              <a href={`/v1/sparkline?ticker=${encodeURIComponent(ticker)}&timeframe=1m`} data-ticker-preset={ticker}>{ticker}</a>
             ))}
           </div>
 
@@ -132,14 +132,13 @@ const structuredData = {
           </div>
 
           <div class="preview-frame" data-preview-state="ready">
-            <span class="preview-status" aria-live="polite" data-preview-status>Live preview</span>
             <img data-preview-image src={directUrl} width="160" height="48" alt="AAPL price over one month" />
             <span class="preview-skeleton" aria-hidden="true"></span>
             <p class="preview-error" data-preview-error role="alert">Preview unavailable. Try another symbol.</p>
           </div>
 
           <div class="generated-url">
-            <a data-generated-url href={directUrl}>{directUrl}</a>
+            <a data-generated-url href={directAbsoluteUrl}>{directAbsoluteUrl}</a>
             <button type="button" data-copy-generated>Copy</button>
           </div>
         </form>
@@ -166,7 +165,7 @@ const structuredData = {
             <thead><tr><th>Name</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
               {parameters.map(([name, requirement, fallback, detail]) => (
-                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{detail}</td></tr>
+                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a valid ticker from <a href="https://londonstrategicedge.com/data#overview">London Strategic Edge</a>; normalized where safe.</> : detail}</td></tr>
               ))}
             </tbody>
           </table>
@@ -188,7 +187,7 @@ X-Error-Status: 404</code></pre>
 
       <section id="freshness" aria-labelledby="freshness-title">
         <h2 id="freshness-title">Freshness</h2>
-        <p>Cache duration depends on timeframe, asset type, and market session. Recent ranges refresh in minutes; long histories refresh less often. Inspect <code>X-Data-As-Of</code> or JSON <code>dataAsOf</code> for the source timestamp.</p>
+        <p>Cache duration depends on timeframe, asset type, and market session. Freshness ranges from 25 minutes for one-day charts to five days for five-year charts. Inspect <code>X-Data-As-Of</code> or JSON <code>dataAsOf</code> for the source timestamp.</p>
         <p>During a provider outage, a recent cached chart may be served within a bounded stale window. No real-time guarantee is implied.</p>
       </section>
 
