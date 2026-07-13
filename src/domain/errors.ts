@@ -83,11 +83,19 @@ export class ProviderRateLimitError extends RateLimitedError {}
 
 export class ProviderError extends DomainError {
   readonly category = "provider_error";
+  readonly providerStatus: number | undefined;
+  readonly attempt: number | undefined;
   constructor(
     message = "The market data provider is temporarily unavailable.",
-    options?: ErrorOptions & { retryAfterSeconds?: number },
+    options?: ErrorOptions & {
+      retryAfterSeconds?: number;
+      providerStatus?: number;
+      attempt?: number;
+    },
   ) {
     super(message, options);
+    this.providerStatus = options?.providerStatus;
+    this.attempt = options?.attempt;
   }
 }
 

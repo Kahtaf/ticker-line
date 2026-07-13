@@ -248,12 +248,16 @@ export class LseProvider implements MarketDataProvider {
           signal: controller.signal,
         });
         if (response.status === 401 || response.status === 403) {
-          throw new ProviderAuthenticationError();
+          throw new ProviderAuthenticationError(undefined, {
+            providerStatus: response.status,
+            attempt,
+          });
         }
         if (response.status === 404) throw new ProviderNotFoundError();
         if (response.status === 422) {
           throw new ProviderSchemaError(
             "The provider rejected the candle request.",
+            { providerStatus: response.status, attempt },
           );
         }
         if (response.status === 429) {
@@ -267,13 +271,22 @@ export class LseProvider implements MarketDataProvider {
         }
         if (response.status >= 500) {
           await response.body?.cancel();
-          lastError = new ProviderError();
+          lastError = new ProviderError(undefined, {
+            providerStatus: response.status,
+            attempt,
+          });
           if (attempt < this.#maxAttempts && deadline - Date.now() > 0)
             continue;
           throw lastError;
         }
         if (!response.ok)
-          throw new ProviderSchemaError("Unexpected provider response status.");
+          throw new ProviderSchemaError(
+            "Unexpected provider response status.",
+            {
+              providerStatus: response.status,
+              attempt,
+            },
+          );
 
         const bytes = await readBoundedBody(response, this.#maxResponseBytes);
         let payload: unknown;
@@ -293,10 +306,9 @@ export class LseProvider implements MarketDataProvider {
         return normalizeRows(parsed.data, request.ticker, providerSymbol);
       } catch (error) {
         if (
-          error instanceof ProviderAuthenticationError ||
+          error instanceof ProviderError ||
           error instanceof ProviderNotFoundError ||
           error instanceof ProviderRateLimitError ||
-          error instanceof ProviderSchemaError ||
           error instanceof InsufficientDataError
         ) {
           throw error;
@@ -304,13 +316,14 @@ export class LseProvider implements MarketDataProvider {
         if (context.signal.aborted)
           throw new ProviderTimeoutError("Provider request was aborted.", {
             cause: error,
+            attempt,
           });
         if (controller.signal.aborted || Date.now() >= deadline) {
-          throw new ProviderTimeoutError(undefined, { cause: error });
+          throw new ProviderTimeoutError(undefined, { cause: error, attempt });
         }
         lastError = error;
         if (attempt >= this.#maxAttempts)
-          throw new ProviderError(undefined, { cause: error });
+          throw new ProviderError(undefined, { cause: error, attempt });
       } finally {
         clearTimeout(timer);
         context.signal.removeEventListener("abort", onAbort);

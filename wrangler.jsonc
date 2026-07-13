@@ -39,7 +39,15 @@
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01,
+    },
   },
   "env": {
     "staging": {
@@ -73,7 +81,15 @@
       },
       "observability": {
         "enabled": true,
-        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "invocation_logs": true,
+        },
+        "traces": {
+          "enabled": true,
+          "head_sampling_rate": 0.1,
+        },
       },
     },
   },

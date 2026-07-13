@@ -10,13 +10,33 @@ function entry(
   level: "info" | "warn" | "error",
   event: string,
   fields: LogFields = {},
-): string {
-  return JSON.stringify({
+): LogFields {
+  return {
+    ...fields,
     timestamp: new Date().toISOString(),
+    schemaVersion: "v1",
     level,
     event,
-    ...fields,
-  });
+    message: event,
+  };
+}
+
+export function errorLogFields(error: unknown): LogFields {
+  if (!(error instanceof Error)) {
+    return { errorType: "UnknownError", errorMessage: String(error) };
+  }
+  const cause = error.cause;
+  return {
+    errorType: error.name,
+    errorMessage: error.message,
+    causeType: cause instanceof Error ? cause.name : undefined,
+    causeMessage:
+      cause instanceof Error
+        ? cause.message
+        : typeof cause === "string"
+          ? cause
+          : undefined,
+  };
 }
 
 export const logger: Logger = {

@@ -240,7 +240,15 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
   },
   "env": {
     "staging": {
@@ -272,7 +280,15 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
       },
       "observability": {
         "enabled": true,
-        "head_sampling_rate": 1
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "invocation_logs": true
+        },
+        "traces": {
+          "enabled": true,
+          "head_sampling_rate": 0.1
+        }
       }
     }
   }
@@ -787,6 +803,8 @@ Classify LSE responses by HTTP status before inspecting the optional untrusted b
 - `429`: transient rate limit; honor `Retry-After`, do not retry immediately, and prefer stale data.
 - `5xx`, network failure, or timeout: transient provider error with at most one bounded retry when budget remains.
 
+Use a 10-second total provider deadline for the evaluated LSE candle endpoint. The deadline is shared across both attempts rather than applied independently, so one retry cannot double the request budget. Revisit this value from observed provider latency; the July 2026 live evaluation showed successful candle responses commonly taking 3–6 seconds.
+
 Provider `detail` bodies may be direct strings or nested/stringified JSON. Do not recursively parse them for normal control flow.
 
 ## 12. Sampling and rendering
@@ -884,7 +902,7 @@ Unexpected exceptions map to `SERVICE_UNAVAILABLE`, receive an internal error lo
 
 ## 14. Observability
 
-Use structured JSON logs written through a tiny internal logger interface. Do not introduce Pino or another logger unless Cloudflare log integration demonstrates a need.
+Use structured object logs written through a tiny internal logger interface so Workers Logs indexes each field. Do not serialize the object to a JSON string before passing it to `console`, and do not introduce Pino or another logger unless Cloudflare log integration demonstrates a need. Emit operational failures through `console.error`, expected client failures through `console.warn`, and successful completion events through `console.log`.
 
 One request-completion event should include:
 

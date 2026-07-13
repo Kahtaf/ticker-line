@@ -9,7 +9,9 @@ import { createResponseCacheKey } from "./cache/keys";
 import { readConfig, type AppConfig } from "./config";
 import {
   MethodNotAllowedError,
+  ProviderError,
   RateLimitedError,
+  type PublicError,
   toPublicError,
 } from "./domain/errors";
 import type { MarketDataProvider } from "./domain/market-series";
@@ -30,7 +32,7 @@ import {
   renderSparklineJson,
 } from "./render/renderer";
 import { loadSeries } from "./services/series";
-import { logger, type Logger } from "./telemetry/logger";
+import { errorLogFields, logger, type Logger } from "./telemetry/logger";
 
 type Bindings = { Bindings: Env };
 
@@ -175,6 +177,8 @@ export function createApp(
     const requestId = crypto.randomUUID();
     const mode = requestedOutputMode(new URL(c.req.url));
     let response: Response;
+    let canonicalRequest: ReturnType<typeof parseSparklineRequest> | undefined;
+    let semanticError: PublicError | undefined;
     try {
       const limitKey = c.req.header("CF-Connecting-IP") ?? "anonymous";
       const limit = await c.env.SPARKLINE_RATE_LIMITER.limit({ key: limitKey });
@@ -183,6 +187,7 @@ export function createApp(
       }
 
       const request = parseSparklineRequest(c.req.raw);
+      canonicalRequest = request;
       const config = readConfig(c.env);
       const responseCache = factories.createResponseCache();
       const responseKey = createResponseCacheKey(request, {
@@ -233,29 +238,62 @@ export function createApp(
         withApiHeaders(response, requestId),
       );
     } catch (error) {
-      factories.logger.warn("request_failed", {
+      semanticError = toPublicError(error);
+      const failureFields = {
         requestId,
         method: c.req.method,
         path: c.req.path,
-        errorType: error instanceof Error ? error.name : "UnknownError",
-        causeType:
-          error instanceof Error && error.cause instanceof Error
-            ? error.cause.name
-            : undefined,
-      });
+        outcome: mode === "svg" ? "fallback" : "json_error",
+        semanticStatus: semanticError.status,
+        errorCode: semanticError.code,
+        durationMs: Date.now() - startedAt,
+        ticker: canonicalRequest?.ticker,
+        timeframe: canonicalRequest?.timeframe,
+        theme: canonicalRequest?.theme,
+        fill: canonicalRequest?.fill,
+        format: canonicalRequest?.format,
+        providerStatus:
+          error instanceof ProviderError ? error.providerStatus : undefined,
+        providerAttempt:
+          error instanceof ProviderError ? error.attempt : undefined,
+        ...errorLogFields(error),
+      };
+      if (semanticError.status >= 500) {
+        factories.logger.error("request_failed", failureFields);
+      } else {
+        factories.logger.warn("request_failed", failureFields);
+      }
       response = withApiHeaders(
-        await createErrorResponse(toPublicError(error), mode, requestId),
+        await createErrorResponse(semanticError, mode, requestId),
         requestId,
       );
     }
 
+    const fallbackErrorCode = response.headers.get("X-Error-Code");
     factories.logger.info("request_complete", {
       requestId,
       method: c.req.method,
       path: c.req.path,
       status: response.status,
+      semanticStatus:
+        semanticError?.status ??
+        (fallbackErrorCode === null
+          ? response.status
+          : Number(response.headers.get("X-Error-Status"))),
+      outcome:
+        fallbackErrorCode !== null
+          ? "fallback"
+          : response.status >= 400
+            ? "json_error"
+            : "chart",
+      errorCode: semanticError?.code ?? fallbackErrorCode ?? undefined,
       cache: response.headers.get("X-Cache"),
       durationMs: Date.now() - startedAt,
+      ticker: canonicalRequest?.ticker,
+      timeframe: canonicalRequest?.timeframe,
+      theme: canonicalRequest?.theme,
+      fill: canonicalRequest?.fill,
+      format: canonicalRequest?.format,
     });
     return c.req.method === "HEAD" ? withoutBody(response) : response;
   });

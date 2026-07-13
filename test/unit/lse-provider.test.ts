@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   InsufficientDataError,
   ProviderAuthenticationError,
+  ProviderError,
   ProviderNotFoundError,
   ProviderRateLimitError,
   ProviderSchemaError,
+  ProviderTimeoutError,
 } from "../../src/domain/errors";
 import type { MarketSeriesRequest } from "../../src/domain/market-series";
 import {
@@ -137,6 +139,42 @@ describe("LseProvider", () => {
     await expect(
       readBoundedBody(new Response("12345"), 4),
     ).rejects.toBeInstanceOf(ProviderSchemaError);
+  });
+
+  it("retains upstream status and attempt metadata for diagnostics", async () => {
+    const error = await providerWith(new Response(null, { status: 503 }))
+      .fetchSeries(baseRequest, context)
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ProviderError);
+    expect(error).toMatchObject({ providerStatus: 503, attempt: 1 });
+  });
+
+  it("enforces the bounded total provider deadline", async () => {
+    const provider = new LseProvider({
+      apiKey: "fixture-key",
+      timeoutMs: 5,
+      maxAttempts: 1,
+      fetch: (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => {
+              reject(
+                new DOMException("Provider request aborted", "AbortError"),
+              );
+            },
+            { once: true },
+          );
+        }),
+    });
+
+    await expect(
+      provider.fetchSeries(baseRequest, context),
+    ).rejects.toMatchObject({
+      name: ProviderTimeoutError.name,
+      attempt: 1,
+    });
   });
 });
 

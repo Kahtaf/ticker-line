@@ -17,7 +17,7 @@ import type {
 import type { CanonicalSparklineRequest } from "../domain/request";
 import { getTimeframePolicy, getTimeframeRange } from "../domain/timeframe";
 import type { AppConfig } from "../config";
-import type { Logger } from "../telemetry/logger";
+import { errorLogFields, type Logger } from "../telemetry/logger";
 
 export type SeriesResult = Readonly<{
   series: MarketSeries;
@@ -173,6 +173,7 @@ export async function loadSeries(
 
   if (cached.state === "stale") {
     if (cached.refreshAllowed) {
+      const refreshStartedAt = Date.now();
       const backgroundRefresh = refresh(
         { ...options, signal: new AbortController().signal },
         parts,
@@ -189,9 +190,11 @@ export async function loadSeries(
         );
         options.logger.warn("market_data_background_refresh_failed", {
           requestId: options.requestId,
+          providerId: options.config.providerId,
           ticker: options.request.ticker,
           timeframe: options.request.timeframe,
-          errorType: error instanceof Error ? error.name : "UnknownError",
+          durationMs: Date.now() - refreshStartedAt,
+          ...errorLogFields(error),
         });
       });
       options.waitUntil(backgroundRefresh);
