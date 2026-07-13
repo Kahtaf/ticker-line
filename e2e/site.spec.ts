@@ -59,6 +59,9 @@ test("renders indexable documentation and a live product example", async ({
   await expect(
     page.locator('img[alt="AAPL price over one month"]'),
   ).toBeVisible();
+  await expect(page.locator("#terms")).toContainText(
+    "Fair use applies: requests are rate-limited per IP to protect the shared service.",
+  );
 });
 
 test("loads common ticker presets into the live builder", async ({ page }) => {
