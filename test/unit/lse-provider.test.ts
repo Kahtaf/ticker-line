@@ -81,6 +81,30 @@ describe("LseProvider", () => {
     expect(series.dataAsOf).toBe("2026-07-12T20:30:00.123Z");
   });
 
+  it.each([
+    ["ETH-USD", "ETH/USD", "crypto"],
+    ["SOL-USD", "SOL/USD", "crypto"],
+    ["EURUSD=X", "EUR/USD", "forex"],
+    ["^GSPC", "SPX500/USD", "index"],
+    ["^DJI", "US30/USD", "index"],
+    ["^IXIC", "NASCOMP/USD", "index"],
+    ["^RUT", "US2000/USD", "index"],
+  ] as const)(
+    "maps public ticker %s to provider symbol %s",
+    async (ticker, providerSymbol, assetType) => {
+      let symbol: string | null = null;
+      const rows = btc.map((row) => ({ ...row, symbol: providerSymbol }));
+      const series = await providerWith(Response.json(rows), (request) => {
+        symbol = new URL(request.url).searchParams.get("symbol");
+      }).fetchSeries({ ...baseRequest, ticker }, context);
+
+      expect(symbol).toBe(providerSymbol);
+      expect(series.resolvedTicker).toBe(ticker);
+      expect(series.assetType).toBe(assetType);
+      expect(series.currency).toBe("USD");
+    },
+  );
+
   it("preserves exact exchange suffixes", async () => {
     let symbol: string | null = null;
     await providerWith(Response.json(vod), (request) => {
