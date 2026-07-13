@@ -229,6 +229,33 @@ test("styles inline code and omits section dividers", async ({ page }) => {
   await expect(inlineCode).toHaveCSS("background-color", "rgb(26, 26, 26)");
 });
 
+test("gives the mobile hero room and sizes error chips to their text", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 559, height: 870 });
+  await page.goto("/");
+
+  await expect(page.locator(".intro")).toHaveCSS("padding-top", "30px");
+  await expect(page.locator(".intro")).toHaveCSS("padding-bottom", "72px");
+
+  const providerError = page.getByText("PROVIDER_ERROR", { exact: true });
+  const chipWidth = await providerError.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  const gridTrackWidth = await providerError.evaluate((element) => {
+    const parent = element.parentElement;
+    const status = parent?.querySelector("span");
+    if (!parent || !status) return 0;
+    return (
+      parent.getBoundingClientRect().right -
+      status.getBoundingClientRect().right
+    );
+  });
+
+  expect(chipWidth).toBeLessThan(gridTrackWidth);
+  await expect(providerError).toHaveCSS("justify-self", "start");
+});
+
 test("shows the project and author footer links", async ({ page }) => {
   await page.goto("/");
 

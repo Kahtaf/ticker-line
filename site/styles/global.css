@@ -743,6 +743,7 @@ td small {
   font-size: 0.7rem;
 }
 .error-codes code {
+  justify-self: start;
   color: var(--foreground-600);
   font-size: 0.7rem;
 }
@@ -819,6 +820,9 @@ td small {
   }
   .docs-nav {
     display: none;
+  }
+  .docs-content .intro {
+    padding-block: 30px 72px;
   }
   .builder-fields {
     grid-template-columns: repeat(2, 1fr);
