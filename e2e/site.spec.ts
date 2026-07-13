@@ -26,6 +26,10 @@ test("renders indexable documentation and a live product example", async ({
   await expect(page.getByText("Live preview")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Parameters" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(page.getByText('"referencePrice": 296.34')).toBeVisible();
+  await expect(
+    page.getByText("changePercent is expressed in percentage points."),
+  ).toBeVisible();
   await expect(
     page.locator('img[alt="AAPL price over one month"]'),
   ).toBeVisible();

@@ -13,6 +13,18 @@ const htmlExample = `<img
   height="48"
 />`
 const markdownExample = `![AAPL price over one month](${directAbsoluteUrl})`
+const jsonUrl = `${directAbsoluteUrl}&format=json`
+const jsonExample = `{
+  "ticker": "AAPL",
+  "timeframe": "1m",
+  "price": 314.98,
+  "referencePrice": 296.34,
+  "change": 18.64,
+  "changePercent": 6.29,
+  "direction": "up",
+  "dataAsOf": "2026-07-10T00:00:00.000Z",
+  "svg": "<svg ...>...</svg>"
+}`
 
 const presets = ['AAPL', 'BTC-USD', 'SPY', 'NAS100-USD', 'XAU/USD', 'USD/CAD']
 
@@ -20,8 +32,8 @@ const parameters = [
   ['ticker', 'required', '—', 'Provider-supported symbol, normalized where safe.'],
   ['timeframe', 'optional', '1m', '1d, 7d, 1m, 3m, 1y, or 5y.'],
   ['theme', 'optional', 'light', 'light or dark.'],
-  ['fill', 'optional', 'false', 'Fill gains and losses to the first-close reference line.'],
-  ['format', 'optional', 'svg', 'svg for embeds; json for metadata and semantic errors.'],
+  ['fill', 'optional', 'false', 'Fill gains and losses to the chart reference line.'],
+  ['format', 'optional', 'svg', 'svg for embeds; json adds quote metrics and semantic errors.'],
 ]
 
 const errors = [
@@ -156,6 +168,12 @@ const structuredData = {
           <pre tabindex="0"><code>{markdownExample}</code></pre>
           <button type="button" data-copy={markdownExample}>Copy</button>
         </div>
+        <p class="code-label">JSON</p>
+        <div class="code-block">
+          <pre tabindex="0"><code>{jsonExample}</code></pre>
+          <button type="button" data-copy={jsonUrl}>Copy URL</button>
+        </div>
+        <p class="section-copy"><code>price</code> is the latest close. Change values compare it with <code>referencePrice</code>; <code>changePercent</code> is expressed in percentage points.</p>
       </section>
 
       <section id="parameters" aria-labelledby="parameters-title">
