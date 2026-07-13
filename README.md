@@ -126,8 +126,6 @@ The default test suite uses provider fixtures and does not call the live LSE API
 - **Astro** builds the documentation site.
 - **Vitest and Playwright** cover unit, visual, browser, and accessibility behavior.
 
-See the [implementation guide](docs/implementation.md) for the cache policy, provider adapter, infrastructure, observability, deployment, and testing strategy. The [PRD](docs/prd.md) defines the public product contract.
-
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request. Report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
