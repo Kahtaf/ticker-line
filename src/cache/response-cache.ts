@@ -1,5 +1,6 @@
 export const INTERNAL_FRESH_UNTIL_HEADER = "X-Internal-Fresh-Until";
 export const INTERNAL_CACHE_STATE_HEADER = "X-Internal-Cache-State";
+export const INTERNAL_BROWSER_MAX_AGE_HEADER = "X-Internal-Browser-Max-Age";
 
 const STABLE_HEADERS = [
   "cache-control",
@@ -22,6 +23,27 @@ export interface ResponseCacheStore {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
   delete(request: Request): Promise<boolean>;
+}
+
+function browserMaxAge(cacheControl: string | null): string | undefined {
+  return /(?:^|,\s*)max-age=(\d+)/.exec(cacheControl ?? "")?.[1];
+}
+
+/** Restore the application-selected browser TTL after Cache API/zone rules. */
+export function restoreCachedBrowserMaxAge(headers: Headers): void {
+  const original = headers.get(INTERNAL_BROWSER_MAX_AGE_HEADER);
+  const cacheControl = headers.get("Cache-Control");
+  if (original === null || !/^\d+$/.test(original) || cacheControl === null)
+    return;
+  const maxAge = /(?:^|,\s*)max-age=\d+/;
+  headers.set(
+    "Cache-Control",
+    maxAge.test(cacheControl)
+      ? cacheControl.replace(maxAge, (match) =>
+          match.replace(/max-age=\d+/, `max-age=${original}`),
+        )
+      : `${cacheControl}, max-age=${original}`,
+  );
 }
 
 export class ResponseArtifactCache {
@@ -69,6 +91,10 @@ export class ResponseArtifactCache {
     headers.set(INTERNAL_CACHE_STATE_HEADER, metadata.state);
     if (!headers.has("Cache-Control")) {
       headers.set("Cache-Control", `public, max-age=${cacheForSeconds}`);
+    }
+    const selectedBrowserMaxAge = browserMaxAge(headers.get("Cache-Control"));
+    if (selectedBrowserMaxAge !== undefined) {
+      headers.set(INTERNAL_BROWSER_MAX_AGE_HEADER, selectedBrowserMaxAge);
     }
     const artifact = new Response(response.clone().body, {
       status: response.status,

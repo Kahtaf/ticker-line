@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { MarketDataCache } from "./cache/data-cache";
 import {
+  INTERNAL_BROWSER_MAX_AGE_HEADER,
   INTERNAL_CACHE_STATE_HEADER,
   INTERNAL_FRESH_UNTIL_HEADER,
   ResponseArtifactCache,
+  restoreCachedBrowserMaxAge,
 } from "./cache/response-cache";
 import { createResponseCacheKey } from "./cache/keys";
 import { readConfig, type AppConfig } from "./config";
@@ -88,6 +90,8 @@ function stripInternalHeaders(
   cacheState: "HIT" | "MISS" | "STALE",
 ): Response {
   const headers = new Headers(response.headers);
+  restoreCachedBrowserMaxAge(headers);
+  headers.delete(INTERNAL_BROWSER_MAX_AGE_HEADER);
   headers.delete(INTERNAL_FRESH_UNTIL_HEADER);
   headers.delete(INTERNAL_CACHE_STATE_HEADER);
   headers.set("X-Cache", cacheState);

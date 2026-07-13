@@ -118,7 +118,7 @@ describe("one-day series selection", () => {
       providerBaseUrl: "https://example.test",
       cachePolicyVersion: "v1",
       normalizationVersion: "v2",
-      rendererVersion: "v3",
+      rendererVersion: "v4",
       providerApiKey: "test-only",
     };
 

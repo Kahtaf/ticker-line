@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  INTERNAL_BROWSER_MAX_AGE_HEADER,
   INTERNAL_CACHE_STATE_HEADER,
   ResponseArtifactCache,
+  restoreCachedBrowserMaxAge,
   type ResponseCacheStore,
 } from "../../src/cache/response-cache";
 
@@ -50,6 +52,7 @@ describe("ResponseArtifactCache", () => {
     expect(stored?.headers.get("X-Request-Id")).toBeNull();
     expect(stored?.headers.get("X-Cache")).toBeNull();
     expect(stored?.headers.get(INTERNAL_CACHE_STATE_HEADER)).toBe("FRESH");
+    expect(stored?.headers.get(INTERNAL_BROWSER_MAX_AGE_HEADER)).toBe("90");
     expect(stored?.headers.get("Cache-Control")).toBe("public, max-age=90");
   });
 
@@ -85,6 +88,20 @@ describe("ResponseArtifactCache", () => {
     );
     expect((await cache.match(key, now))?.headers.get("Cache-Control")).toBe(
       cacheControl,
+    );
+  });
+
+  it("restores the selected browser TTL after a zone-level cache rewrite", () => {
+    const headers = new Headers({
+      "Cache-Control":
+        "public, max-age=14400, s-maxage=1500, stale-while-revalidate=3600",
+      [INTERNAL_BROWSER_MAX_AGE_HEADER]: "60",
+    });
+
+    restoreCachedBrowserMaxAge(headers);
+
+    expect(headers.get("Cache-Control")).toBe(
+      "public, max-age=60, s-maxage=1500, stale-while-revalidate=3600",
     );
   });
 });

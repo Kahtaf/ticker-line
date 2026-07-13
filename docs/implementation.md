@@ -244,7 +244,7 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
     "PROVIDER_BASE_URL": "replace-after-provider-validation",
     "CACHE_POLICY_VERSION": "v1",
     "NORMALIZATION_VERSION": "v2",
-    "RENDERER_VERSION": "v3"
+    "RENDERER_VERSION": "v4"
   },
   "observability": {
     "enabled": true,
@@ -292,7 +292,7 @@ Use `wrangler.jsonc`, not TOML. Start with this shape and replace placeholders d
         "PROVIDER_BASE_URL": "replace-after-provider-validation",
         "CACHE_POLICY_VERSION": "v1",
         "NORMALIZATION_VERSION": "v2",
-        "RENDERER_VERSION": "v3"
+        "RENDERER_VERSION": "v4"
       },
       "observability": {
         "enabled": true,
