@@ -10,6 +10,13 @@ const LSE_SYMBOL_ALIASES: Readonly<Record<string, LseSymbolAlias>> = {
   "BTC-USD": { symbol: "BTC/USD", assetType: "crypto", currency: "USD" },
   "ETH-USD": { symbol: "ETH/USD", assetType: "crypto", currency: "USD" },
   "SOL-USD": { symbol: "SOL/USD", assetType: "crypto", currency: "USD" },
+  "NAS100-USD": {
+    symbol: "NAS100/USD",
+    assetType: "index",
+    currency: "USD",
+  },
+  "XAU/USD": { symbol: "XAU/USD", assetType: "unknown", currency: "USD" },
+  "USD/CAD": { symbol: "USD/CAD", assetType: "forex", currency: "CAD" },
   "EURUSD=X": { symbol: "EUR/USD", assetType: "forex", currency: "USD" },
   "^GSPC": { symbol: "SPX500/USD", assetType: "index", currency: "USD" },
   "^DJI": { symbol: "US30/USD", assetType: "index", currency: "USD" },

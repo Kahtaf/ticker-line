@@ -29,6 +29,14 @@ describe("canonical request representation", () => {
     ).toBe("ticker=BTC%2FUSD&timeframe=7d&theme=dark&fill=true&format=json");
   });
 
+  it("accepts provider slash symbols inside the ticker query value", () => {
+    expect(
+      parseSparklineRequest(
+        new Request("https://example.test/v1/sparkline?ticker=xau%2Fusd"),
+      ).ticker,
+    ).toBe("XAU/USD");
+  });
+
   it("parses the fill flag and defaults it off", () => {
     expect(
       parseSparklineRequest(

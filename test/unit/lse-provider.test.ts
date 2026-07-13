@@ -82,16 +82,19 @@ describe("LseProvider", () => {
   });
 
   it.each([
-    ["ETH-USD", "ETH/USD", "crypto"],
-    ["SOL-USD", "SOL/USD", "crypto"],
-    ["EURUSD=X", "EUR/USD", "forex"],
-    ["^GSPC", "SPX500/USD", "index"],
-    ["^DJI", "US30/USD", "index"],
-    ["^IXIC", "NASCOMP/USD", "index"],
-    ["^RUT", "US2000/USD", "index"],
+    ["ETH-USD", "ETH/USD", "crypto", "USD"],
+    ["SOL-USD", "SOL/USD", "crypto", "USD"],
+    ["NAS100-USD", "NAS100/USD", "index", "USD"],
+    ["XAU/USD", "XAU/USD", "unknown", "USD"],
+    ["USD/CAD", "USD/CAD", "forex", "CAD"],
+    ["EURUSD=X", "EUR/USD", "forex", "USD"],
+    ["^GSPC", "SPX500/USD", "index", "USD"],
+    ["^DJI", "US30/USD", "index", "USD"],
+    ["^IXIC", "NASCOMP/USD", "index", "USD"],
+    ["^RUT", "US2000/USD", "index", "USD"],
   ] as const)(
     "maps public ticker %s to provider symbol %s",
-    async (ticker, providerSymbol, assetType) => {
+    async (ticker, providerSymbol, assetType, currency) => {
       let symbol: string | null = null;
       const rows = btc.map((row) => ({ ...row, symbol: providerSymbol }));
       const series = await providerWith(Response.json(rows), (request) => {
@@ -101,7 +104,7 @@ describe("LseProvider", () => {
       expect(symbol).toBe(providerSymbol);
       expect(series.resolvedTicker).toBe(ticker);
       expect(series.assetType).toBe(assetType);
-      expect(series.currency).toBe("USD");
+      expect(series.currency).toBe(currency);
     },
   );
 

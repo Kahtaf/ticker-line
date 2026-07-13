@@ -16,7 +16,7 @@ const ALLOWED_PARAMETERS = new Set([
   "fill",
   "format",
 ]);
-const TICKER_PATTERN = /^[A-Za-z0-9.^=_-]+$/;
+const TICKER_PATTERN = /^[A-Za-z0-9./^=_-]+$/;
 const MAX_TICKER_LENGTH = 32;
 const MAX_URL_LENGTH = 2048;
 
