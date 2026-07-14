@@ -121,6 +121,8 @@ describe("one-day series selection", () => {
       rendererVersion: "v4",
       providerApiKey: "test-only",
     };
+    const recordMarketData = vi.fn(async () => {});
+    const pending: Promise<unknown>[] = [];
 
     const result = await loadSeries({
       request,
@@ -131,10 +133,15 @@ describe("one-day series selection", () => {
       now,
       signal: new AbortController().signal,
       logger: { info() {}, warn() {}, error() {} },
-      waitUntil() {},
+      waitUntil(promise) {
+        pending.push(promise);
+      },
+      statusReporter: { recordMarketData },
     });
+    await Promise.all(pending);
 
     expect(fetchSeries).toHaveBeenCalledOnce();
+    expect(recordMarketData).toHaveBeenCalledWith("operational", now);
     expect(fetchSeries.mock.calls[0]?.[0]).toMatchObject({
       ticker: "AAPL",
       interval: "15m",

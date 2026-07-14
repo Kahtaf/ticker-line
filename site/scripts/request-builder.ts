@@ -17,6 +17,11 @@ type RequestState = Readonly<{
   theme: "light" | "dark";
   fill: boolean;
 }>;
+type ServiceState = "operational" | "degraded" | "unavailable" | "unknown";
+type ServiceStatus = Readonly<{
+  status: ServiceState;
+  message: string;
+}>;
 type MarketQuote = Readonly<{
   price: number;
   change: number;
@@ -24,6 +29,61 @@ type MarketQuote = Readonly<{
   direction: MarketDirection;
   svg: string;
 }>;
+
+const SERVICE_STATUS_LABELS: Readonly<Record<ServiceState, string>> = {
+  operational: "Operational",
+  degraded: "Degraded",
+  unavailable: "Unavailable",
+  unknown: "Unknown",
+};
+
+const serviceStatusLink = document.querySelector<HTMLAnchorElement>(
+  "[data-service-status]",
+);
+const serviceStatusLabel = serviceStatusLink?.querySelector<HTMLElement>(
+  "[data-status-label]",
+);
+
+function isServiceStatus(value: unknown): value is ServiceStatus {
+  if (typeof value !== "object" || value === null) return false;
+  const status = value as Partial<ServiceStatus>;
+  return (
+    (status.status === "operational" ||
+      status.status === "degraded" ||
+      status.status === "unavailable" ||
+      status.status === "unknown") &&
+    typeof status.message === "string"
+  );
+}
+
+function showServiceStatus(status: ServiceState, message: string): void {
+  if (!serviceStatusLink) return;
+  serviceStatusLink.dataset.status = status;
+  serviceStatusLink.setAttribute(
+    "aria-label",
+    `Service status: ${SERVICE_STATUS_LABELS[status].toLowerCase()}`,
+  );
+  serviceStatusLink.title = message;
+  if (serviceStatusLabel)
+    serviceStatusLabel.textContent = SERVICE_STATUS_LABELS[status];
+}
+
+async function loadServiceStatus(): Promise<void> {
+  try {
+    const response = await fetch("/status", {
+      headers: { accept: "application/json" },
+    });
+    if (!response.ok)
+      throw new Error(`Status request failed: ${response.status}`);
+    const payload: unknown = await response.json();
+    if (!isServiceStatus(payload)) throw new Error("Invalid status response");
+    showServiceStatus(payload.status, payload.message);
+  } catch {
+    showServiceStatus("unknown", "Service status is temporarily unavailable.");
+  }
+}
+
+void loadServiceStatus();
 
 const marketCards = [
   ...document.querySelectorAll<HTMLButtonElement>("[data-market-card]"),

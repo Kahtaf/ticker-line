@@ -4,6 +4,21 @@ import { expect, test } from "@playwright/test";
 const validSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48"><title>Test chart</title><path d="M2 40L42 30L82 34L122 12L158 8" fill="none" stroke="#236b43" stroke-width="2"/></svg>`;
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/status", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify({
+        status: "operational",
+        components: {
+          api: "operational",
+          marketData: "operational",
+        },
+        updatedAt: "2026-07-13T21:00:00.000Z",
+        message: "The API and market data are operating normally.",
+      }),
+    }),
+  );
   await page.route("**/v1/sparkline?*", (route) => {
     const requestUrl = new URL(route.request().url());
     if (requestUrl.searchParams.get("format") === "json") {
@@ -45,6 +60,20 @@ test("renders indexable documentation and a live product example", async ({
   );
   await expect(page.getByText("Public API · v1")).toHaveCount(0);
   await expect(page.getByText("Live preview")).toHaveCount(0);
+  const statusLink = page.locator("[data-service-status]");
+  await expect(statusLink).toHaveAttribute("href", "/status");
+  await expect(statusLink).toHaveAttribute("data-status", "operational");
+  await expect(statusLink).toHaveAttribute(
+    "aria-label",
+    "Service status: operational",
+  );
+  await expect(statusLink).toHaveAttribute(
+    "title",
+    "The API and market data are operating normally.",
+  );
+  await expect(statusLink.locator("[data-status-label]")).toHaveText(
+    "Operational",
+  );
   await expect(page.getByRole("heading", { name: "Request" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Response" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
@@ -225,6 +254,10 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD",
   );
   await expect(page.locator(".docs-nav")).toBeHidden();
+  await expect(page.locator("[data-service-status]")).toBeVisible();
+  await expect(
+    page.locator("[data-service-status] [data-status-label]"),
+  ).toBeHidden();
   await expect(page.locator(".compact-code code")).toHaveText(
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m",
   );

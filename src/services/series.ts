@@ -19,6 +19,11 @@ import type {
 import type { CanonicalSparklineRequest } from "../domain/request";
 import { getTimeframePolicy, getTimeframeRange } from "../domain/timeframe";
 import type { AppConfig } from "../config";
+import {
+  marketDataStatusForError,
+  type ServiceStatusRepository,
+  type StoredMarketDataStatus,
+} from "../status/service-status";
 import { errorLogFields, type Logger } from "../telemetry/logger";
 
 export type SeriesResult = Readonly<{
@@ -39,6 +44,7 @@ export type SeriesServiceOptions = Readonly<{
   signal: AbortSignal;
   logger: Logger;
   waitUntil(promise: Promise<unknown>): void;
+  statusReporter?: Pick<ServiceStatusRepository, "recordMarketData">;
 }>;
 
 function keyParts(
@@ -151,13 +157,21 @@ async function refresh(
   options: SeriesServiceOptions,
   parts: DataCacheKeyParts,
 ): Promise<CachedMarketSeries> {
-  const fetched = await fetchSelectedSeries(
-    options.provider,
-    options.request,
-    options.now,
-    options.requestId,
-    options.signal,
-  );
+  let fetched: Awaited<ReturnType<typeof fetchSelectedSeries>>;
+  try {
+    fetched = await fetchSelectedSeries(
+      options.provider,
+      options.request,
+      options.now,
+      options.requestId,
+      options.signal,
+    );
+    reportMarketDataStatus(options, "operational");
+  } catch (error) {
+    const status = marketDataStatusForError(error);
+    if (status !== undefined) reportMarketDataStatus(options, status);
+    throw error;
+  }
   const freshness = defaultFreshnessPolicy.evaluate({
     timeframe: options.request.timeframe,
     assetType: fetched.series.assetType,
@@ -170,6 +184,24 @@ async function refresh(
     staleForSeconds: freshness.staleForSeconds,
     now: options.now,
   });
+}
+
+function reportMarketDataStatus(
+  options: SeriesServiceOptions,
+  status: StoredMarketDataStatus,
+): void {
+  if (options.statusReporter === undefined) return;
+  options.waitUntil(
+    options.statusReporter
+      .recordMarketData(status, options.now)
+      .catch((error: unknown) => {
+        options.logger.warn("service_status_write_failed", {
+          requestId: options.requestId,
+          status,
+          ...errorLogFields(error),
+        });
+      }),
+  );
 }
 
 function fromRecord(

@@ -6,7 +6,7 @@ This document is the evergreen technical overview for ticker-line. It describes 
 
 ticker-line is one Cloudflare Worker serving two workloads from `ticker-line.com`:
 
-- Worker routes for `/v1/*` and `/health*`.
+- Worker routes for `/v1/*`, `/health*`, and `/status*`.
 - Astro-generated static assets for the documentation site and crawler metadata.
 
 ```mermaid
@@ -52,6 +52,7 @@ src/
   providers/lse/            LSE schema, symbol mapping, and adapter
   render/                   Sampling, geometry, styles, and SVG serialization
   services/series.ts        Data-cache state machine and one-day selection
+  status/                   Passive public service-status state
   telemetry/logger.ts       Structured logger
 site/
   layouts/                  Static document shell and metadata
@@ -83,7 +84,7 @@ docs/                       Product, implementation, and provider references
 11. Map failures through the single public error model.
 12. Emit one structured completion event.
 
-`HEAD` follows the same behavior but returns no body. `OPTIONS` returns the documented CORS policy. `/health` does not read configuration, KV, rate limits, or the provider.
+`HEAD` follows the same behavior but returns no body. `OPTIONS` returns the documented CORS policy. `/health` does not read configuration, KV, rate limits, or the provider. `/status` reads one coarse KV record and never calls the provider.
 
 ## Request validation and canonicalization
 
@@ -284,6 +285,33 @@ Logs exclude:
 
 Production logs and invocation logs are enabled. Traces sample 1% in production and 10% in staging. Error events are emitted at error or warning level before the completion event.
 
+## Consumer service status
+
+`GET /health` remains a pure Worker liveness check. `GET /status` is the coarse consumer-facing signal:
+
+```json
+{
+  "status": "operational",
+  "components": {
+    "api": "operational",
+    "marketData": "operational"
+  },
+  "updatedAt": "2026-07-13T21:00:00.000Z",
+  "message": "The API and market data are operating normally."
+}
+```
+
+`ServiceStatusStore` uses the reserved `service-status:v1` key in `MARKET_DATA_CACHE`. The stored record contains only schema version, coarse market-data state, and observation time. Records expire after 24 hours; a public observation older than 60 minutes, missing, invalid, or too far in the future is reported as `unknown`.
+
+Only actual provider refresh attempts update the record:
+
+- a successful provider refresh records `operational`;
+- provider rate limits, timeouts, schema failures, and other provider-wide failures record `degraded`;
+- provider authentication failures record `unavailable`;
+- ticker-not-found and insufficient-data outcomes do not change global state.
+
+Writes run through `waitUntil` and cannot turn a chart request into a failure. Fresh market-data and rendered-response cache hits do not write status. Reading `/status` performs one KV read, never calls LSE, and returns a short-cache response. This makes the signal passive and eventually consistent rather than an uptime SLA. The response deliberately omits provider identity, quota, raw errors, upstream request IDs, and other diagnostics.
+
 ## Website
 
 Astro builds static HTML into `dist`. Workers Static Assets serves it without invoking Worker code except for routes listed in `run_worker_first`.
@@ -291,6 +319,7 @@ Astro builds static HTML into `dist`. Workers Static Assets serves it without in
 The core documentation is server-rendered and useful without JavaScript. `site/scripts/request-builder.ts` progressively enhances:
 
 - theme persistence in local storage;
+- a service-status link whose color and label reflect `/status`;
 - copy buttons;
 - ticker presets and market cards;
 - one canonical request state shared by the hero URL, builder, preview, HTML and Markdown examples, copy targets, and JSON response;
@@ -312,7 +341,7 @@ The site uses self-hosted Geist fonts, semantic HTML, one global stylesheet, res
 | Environment variable | `APP_ENV=production` | `APP_ENV=staging` |
 | Observability | Logs plus 1% traces | Logs plus 10% traces |
 
-Static assets use automatic trailing-slash handling and the generated 404 page. The Worker runs first for `/v1/*` and `/health*`.
+Static assets use automatic trailing-slash handling and the generated 404 page. The Worker runs first for `/v1/*`, `/health*`, and `/status*`.
 
 Version variables provide cache roll-forward controls:
 
@@ -343,7 +372,7 @@ The default suite does not call the live provider.
 
 ### Unit and Worker tests
 
-Vitest runs through `@cloudflare/vitest-pool-workers`. Tests cover request parsing, canonical keys, timeframe arithmetic, cache state transitions, rate limits, provider fixtures and failures, sampling, renderer output, public errors, headers, JSON quote math, structured logging, and response-cache behavior.
+Vitest runs through `@cloudflare/vitest-pool-workers`. Tests cover request parsing, canonical keys, timeframe arithmetic, cache state transitions, rate limits, provider fixtures and failures, service-status classification and aging, sampling, renderer output, public errors, headers, JSON quote math, structured logging, and response-cache behavior.
 
 Property tests cover canonicalization and renderer/sampling invariants. Provider fixtures are sanitized and bounded.
 
@@ -386,6 +415,7 @@ npm run deploy
 Both deployment scripts build the Astro site and upload `LSE_API_KEY` from the gitignored `.dev.vars` file without printing it. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
+- `/status` returns `200`, the documented coarse schema, and no provider-specific details;
 - `/` contains the documentation shell and current asset hash;
 - one SVG sample has the correct content type and no error header;
 - one JSON sample contains quote fields and an SVG;

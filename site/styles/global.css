@@ -13,6 +13,7 @@
   --border-100: #eaeaea;
   --border-200: #d4d4d4;
   --success: #0a7a3d;
+  --warning: #a05a00;
   --error: #c9342f;
   --focus: #0070f3;
   --radius: 8px;
@@ -34,6 +35,7 @@ html[data-theme="dark"] {
   --border-100: #262626;
   --border-200: #3b3b3b;
   --success: #45c987;
+  --warning: #f0a33a;
   --error: #ff8580;
   --focus: #52a8ff;
 }
@@ -166,15 +168,30 @@ svg {
 }
 .status-link {
   display: inline-flex;
+  min-height: 32px;
   align-items: center;
   gap: 6px;
 }
-.status-link span {
+.status-dot {
   width: 6px;
   height: 6px;
+  flex: 0 0 auto;
   border-radius: 999px;
+  background: var(--foreground-700);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--foreground-700), transparent 82%);
+}
+.status-link[data-status="operational"] .status-dot {
   background: var(--success);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--success), transparent 82%);
+}
+.status-link[data-status="degraded"] .status-dot {
+  background: var(--warning);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning), transparent 82%);
+}
+.status-link[data-status="unavailable"] .status-dot {
+  background: var(--error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--error), transparent 82%);
 }
 .theme-toggle {
   display: grid;
@@ -798,6 +815,7 @@ td small {
     --border-100: #262626;
     --border-200: #3b3b3b;
     --success: #45c987;
+    --warning: #f0a33a;
     --error: #ff8580;
     --focus: #52a8ff;
   }
@@ -840,6 +858,10 @@ td small {
     gap: 13px;
   }
   .status-link {
+    width: 32px;
+    justify-content: center;
+  }
+  .status-link [data-status-label] {
     display: none;
   }
   h1 {

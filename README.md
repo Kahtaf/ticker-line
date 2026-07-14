@@ -83,6 +83,8 @@ Successful JSON responses include the normalized ticker, timeframe, latest price
 
 SVG requests remain embeddable when something goes wrong: the API returns a gray fallback chart with error details in response headers. JSON requests use semantic HTTP status codes. Responses are cached at the edge, and freshness depends on the timeframe, asset type, and market session.
 
+`GET /health` is a lightweight Worker liveness check. `GET /status` reports coarse API and market-data availability from recent provider refreshes without making a provider request.
+
 ## Development
 
 Requirements:

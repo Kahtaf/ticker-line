@@ -122,6 +122,7 @@ SVG-mode failures remain embeddable. They return HTTP `200`, a deterministic gra
 ### Other routes
 
 - `GET /health` returns `{ "status": "ok" }` without calling the provider.
+- `GET /status` returns coarse API and market-data availability based on recent provider refreshes. It never calls the provider.
 - `GET /` serves the product page and API documentation.
 - `GET /robots.txt` and `GET /sitemap.xml` serve crawler metadata.
 
@@ -229,9 +230,13 @@ The stable operational signals are:
 - Worker latency and exceptions;
 - rate-limit rejections.
 
+`/health` is a Worker liveness check. `/status` is the consumer-facing service signal: it reports `operational`, `degraded`, `unavailable`, or `unknown` for market data and always reports the responding API component as operational. Successful provider refreshes record `operational`; provider-wide transient failures record `degraded`; authentication failures record `unavailable`. Ticker-specific lookup and insufficient-data failures do not change global status.
+
+Status observations are written asynchronously after real provider refresh attempts. Cache hits do not write status, and status reads never trigger provider traffic. An observation older than one hour becomes `unknown`. The public response contains only coarse state, observation time, and a safe message—not provider identity, quotas, upstream errors, or internal diagnostics.
+
 ## Website requirements
 
-The public site is a minimal, indexable documentation page that works without client JavaScript. JavaScript progressively enhances the theme toggle, sample cards, request builder, copy actions, and preview.
+The public site is a minimal, indexable documentation page that works without client JavaScript. JavaScript progressively enhances the theme toggle, service-status indicator, sample cards, request builder, copy actions, and preview.
 
 The page includes:
 

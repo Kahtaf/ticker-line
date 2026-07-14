@@ -34,6 +34,11 @@ import {
   renderSparklineJson,
 } from "./render/renderer";
 import { loadSeries } from "./services/series";
+import {
+  ServiceStatusStore,
+  toPublicServiceStatus,
+  type ServiceStatusRepository,
+} from "./status/service-status";
 import { errorLogFields, logger, type Logger } from "./telemetry/logger";
 
 type Bindings = { Bindings: Env };
@@ -44,6 +49,7 @@ export type AppFactories = Readonly<{
   createProvider(env: Env, config: AppConfig): MarketDataProvider;
   createDataCache(env: Env): MarketDataCache;
   createResponseCache(): ResponseArtifactCache;
+  createStatusStore(env: Env): ServiceStatusRepository;
 }>;
 
 const defaultFactories: AppFactories = {
@@ -63,6 +69,9 @@ const defaultFactories: AppFactories = {
   createResponseCache() {
     const workerCaches = caches as CacheStorage & { readonly default: Cache };
     return new ResponseArtifactCache(workerCaches.default);
+  },
+  createStatusStore(env) {
+    return new ServiceStatusStore(env.MARKET_DATA_CACHE, logger);
   },
 };
 
@@ -152,6 +161,42 @@ export function createApp(
   const factories: AppFactories = { ...defaultFactories, ...overrides };
   const app = new Hono<Bindings>();
 
+  app.options("/status", () => corsPreflightResponse(crypto.randomUUID()));
+
+  app.on(["GET", "HEAD"], "/status", async (c) => {
+    const requestId = crypto.randomUUID();
+    let record: Awaited<ReturnType<ServiceStatusRepository["read"]>>;
+    try {
+      record = await factories.createStatusStore(c.env).read();
+    } catch (error) {
+      factories.logger.warn("service_status_read_failed", {
+        requestId,
+        ...errorLogFields(error),
+      });
+      record = undefined;
+    }
+    const response = withApiHeaders(
+      Response.json(toPublicServiceStatus(record, factories.now()), {
+        headers: {
+          "Cache-Control": "public, max-age=15, s-maxage=30, stale-if-error=60",
+        },
+      }),
+      requestId,
+    );
+    return c.req.method === "HEAD" ? withoutBody(response) : response;
+  });
+
+  app.all("/status", async () => {
+    const requestId = crypto.randomUUID();
+    const response = await createErrorResponse(
+      toPublicError(new MethodNotAllowedError()),
+      "json",
+      requestId,
+    );
+    response.headers.set("Allow", "GET, HEAD, OPTIONS");
+    return withApiHeaders(response, requestId);
+  });
+
   app.on(["GET", "HEAD"], "/health", (c) => {
     const requestId = crypto.randomUUID();
     const response = withApiHeaders(
@@ -218,6 +263,7 @@ export function createApp(
           signal: c.req.raw.signal,
           logger: factories.logger,
           waitUntil: (promise) => c.executionCtx.waitUntil(promise),
+          statusReporter: factories.createStatusStore(c.env),
         });
         response = await renderSuccess(request, series, now);
         if (series.cacheState !== "STALE") {
