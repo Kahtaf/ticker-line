@@ -40,9 +40,6 @@ const SERVICE_STATUS_LABELS: Readonly<Record<ServiceState, string>> = {
 const serviceStatusLink = document.querySelector<HTMLAnchorElement>(
   "[data-service-status]",
 );
-const serviceStatusLabel = serviceStatusLink?.querySelector<HTMLElement>(
-  "[data-status-label]",
-);
 
 function isServiceStatus(value: unknown): value is ServiceStatus {
   if (typeof value !== "object" || value === null) return false;
@@ -64,8 +61,6 @@ function showServiceStatus(status: ServiceState, message: string): void {
     `Service status: ${SERVICE_STATUS_LABELS[status].toLowerCase()}`,
   );
   serviceStatusLink.title = message;
-  if (serviceStatusLabel)
-    serviceStatusLabel.textContent = SERVICE_STATUS_LABELS[status];
 }
 
 async function loadServiceStatus(): Promise<void> {

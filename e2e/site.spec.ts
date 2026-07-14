@@ -71,9 +71,12 @@ test("renders indexable documentation and a live product example", async ({
     "title",
     "The API and market data are operating normally.",
   );
-  await expect(statusLink.locator("[data-status-label]")).toHaveText(
-    "Operational",
-  );
+  await expect(statusLink).toHaveText("Status");
+  await expect(statusLink).toBeVisible();
+  await expect(statusLink.locator("xpath=ancestor::footer")).toHaveCount(1);
+  const githubLink = page.getByRole("link", { name: "GitHub" });
+  await expect(githubLink).toHaveAttribute("target", "_blank");
+  await expect(githubLink).toHaveAttribute("rel", "noopener noreferrer");
   await expect(page.getByRole("heading", { name: "Request" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Response" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
@@ -255,9 +258,7 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
   );
   await expect(page.locator(".docs-nav")).toBeHidden();
   await expect(page.locator("[data-service-status]")).toBeVisible();
-  await expect(
-    page.locator("[data-service-status] [data-status-label]"),
-  ).toBeHidden();
+  await expect(page.locator("[data-service-status]")).toHaveText("Status");
   await expect(page.locator(".compact-code code")).toHaveText(
     "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m",
   );

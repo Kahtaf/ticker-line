@@ -74,11 +74,7 @@ const structuredData = {
         <span>ticker-line</span>
       </a>
       <div class="top-links">
-        <a class="status-link" href="/status" data-service-status data-status="unknown" aria-label="Service status: checking">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span data-status-label>Status</span>
-        </a>
-        <a href="https://github.com/Kahtaf/ticker-line">GitHub</a>
+        <a class="external-link" href="https://github.com/Kahtaf/ticker-line" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
         <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle site theme">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"/><circle cx="8" cy="8" r="2.5"/></svg>
         </button>
@@ -248,7 +244,6 @@ X-Error-Status: 404</code></pre>
         <h2 id="freshness-title">Freshness</h2>
         <p>Cache duration depends on timeframe, asset type, and market session. Freshness ranges from 25 minutes for one-day charts to five days for five-year charts. Inspect <code>X-Data-As-Of</code> or JSON <code>dataAsOf</code> for the source timestamp.</p>
         <p>During a provider outage, a recent cached chart may be served within a bounded stale window. No real-time guarantee is implied.</p>
-        <p><a href="/status"><code>GET /status</code></a> reports coarse API and market-data availability from recent provider refreshes. Checking it never causes a provider request.</p>
       </section>
 
       <section id="terms" aria-labelledby="terms-title">
@@ -259,7 +254,13 @@ X-Error-Status: 404</code></pre>
   </main>
 
   <footer class="site-footer shell">
-    <span>© 2026 Ticker Line</span>
+    <span class="footer-meta">
+      <span>© 2026 Ticker Line</span>
+      <a class="status-link" href="/status" data-service-status data-status="unknown" aria-label="Service status: checking">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Status</span>
+      </a>
+    </span>
     <span class="footer-links">
       <span><a href="https://github.com/kahtaf/OpenCandle">OpenCandle</a> — Open source financial analyst.</span>
       <span>Made by <a href="https://kahtaf.com">Kahtaf</a>.</span>
