@@ -85,7 +85,7 @@ describe("LseProvider", () => {
   it.each([
     ["ETH-USD", "ETH/USD", "crypto", "USD"],
     ["SOL-USD", "SOL/USD", "crypto", "USD"],
-    ["NAS100-USD", "NAS100/USD", "index", "USD"],
+    ["NAS100/USD", "NAS100/USD", "index", "USD"],
     ["XAU/USD", "XAU/USD", "unknown", "USD"],
     ["USD/CAD", "USD/CAD", "forex", "CAD"],
     ["EURUSD=X", "EUR/USD", "forex", "USD"],

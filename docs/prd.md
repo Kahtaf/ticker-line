@@ -149,7 +149,7 @@ The public sample set covers:
 - Apple — `AAPL`
 - Bitcoin — `BTC/USD`
 - S&P 500 — `SPY`
-- Nasdaq 100 — `NAS100-USD`
+- Nasdaq 100 — `NAS100/USD`
 - Gold — `XAU/USD`
 - USD / CAD — `USD/CAD`
 

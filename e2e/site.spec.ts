@@ -72,7 +72,7 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
     "AAPL",
     "BTC/USD",
     "SPY",
-    "NAS100-USD",
+    "NAS100/USD",
     "XAU/USD",
     "USD/CAD",
   ];

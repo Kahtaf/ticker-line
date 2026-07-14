@@ -42,14 +42,14 @@ curl "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=1d&format=
 
 These are the same examples available in the live request builder.
 
-| Market     | Ticker       | Live chart                                                                                   |
-| ---------- | ------------ | -------------------------------------------------------------------------------------------- |
-| Apple      | `AAPL`       | ![AAPL sparkline](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m)             |
-| Bitcoin    | `BTC/USD`    | ![BTC/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=1m)     |
-| S&P 500    | `SPY`        | ![SPY sparkline](https://ticker-line.com/v1/sparkline?ticker=SPY&timeframe=1m)               |
-| Nasdaq 100 | `NAS100-USD` | ![NAS100-USD sparkline](https://ticker-line.com/v1/sparkline?ticker=NAS100-USD&timeframe=1m) |
-| Gold       | `XAU/USD`    | ![XAU/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m)     |
-| USD / CAD  | `USD/CAD`    | ![USD/CAD sparkline](https://ticker-line.com/v1/sparkline?ticker=USD%2FCAD&timeframe=1m)     |
+| Market     | Ticker       | Live chart                                                                                     |
+| ---------- | ------------ | ---------------------------------------------------------------------------------------------- |
+| Apple      | `AAPL`       | ![AAPL sparkline](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m)               |
+| Bitcoin    | `BTC/USD`    | ![BTC/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=1m)       |
+| S&P 500    | `SPY`        | ![SPY sparkline](https://ticker-line.com/v1/sparkline?ticker=SPY&timeframe=1m)                 |
+| Nasdaq 100 | `NAS100/USD` | ![NAS100/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=NAS100%2FUSD&timeframe=1m) |
+| Gold       | `XAU/USD`    | ![XAU/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m)       |
+| USD / CAD  | `USD/CAD`    | ![USD/CAD sparkline](https://ticker-line.com/v1/sparkline?ticker=USD%2FCAD&timeframe=1m)       |
 
 Ticker symbols must be supported by [London Strategic Edge](https://londonstrategicedge.com/data/#overview).
 

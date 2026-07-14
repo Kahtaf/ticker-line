@@ -10,7 +10,7 @@ const LSE_SYMBOL_ALIASES: Readonly<Record<string, LseSymbolAlias>> = {
   "BTC-USD": { symbol: "BTC/USD", assetType: "crypto", currency: "USD" },
   "ETH-USD": { symbol: "ETH/USD", assetType: "crypto", currency: "USD" },
   "SOL-USD": { symbol: "SOL/USD", assetType: "crypto", currency: "USD" },
-  "NAS100-USD": {
+  "NAS100/USD": {
     symbol: "NAS100/USD",
     assetType: "index",
     currency: "USD",
