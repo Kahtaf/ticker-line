@@ -238,6 +238,7 @@ The page includes:
 - a clear value proposition and live URL;
 - six representative market cards;
 - a request builder for all public parameters;
+- shared example state so cards, presets, URLs, preview alt text, HTML, Markdown, copy targets, and the JSON response stay synchronized;
 - HTML and Markdown examples;
 - request, response, error, freshness, and fair-use documentation;
 - responsive desktop and mobile layouts;

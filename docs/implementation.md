@@ -293,8 +293,8 @@ The core documentation is server-rendered and useful without JavaScript. `site/s
 - theme persistence in local storage;
 - copy buttons;
 - ticker presets and market cards;
-- generated URLs;
-- debounced preview updates;
+- one canonical request state shared by the hero URL, builder, preview, HTML and Markdown examples, copy targets, and JSON response;
+- debounced response and preview updates, with JSON loaded before the matching SVG preview to avoid racing cold market-data requests;
 - live JSON-backed market-card data.
 
 The site uses self-hosted Geist fonts, semantic HTML, one global stylesheet, responsive layouts, keyboard focus states, and reduced-motion support. Metadata includes canonical and Open Graph tags, JSON-LD, favicon, social card, `robots.txt`, and sitemap.

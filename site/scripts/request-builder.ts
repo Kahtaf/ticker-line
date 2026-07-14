@@ -11,6 +11,12 @@ const PUBLIC_API_ORIGIN = "https://ticker-line.com";
 const TICKER_PATTERN = /^[A-Z0-9./^=_-]{1,32}$/;
 
 type MarketDirection = "up" | "down" | "flat";
+type RequestState = Readonly<{
+  ticker: string;
+  timeframe: string;
+  theme: "light" | "dark";
+  fill: boolean;
+}>;
 type MarketQuote = Readonly<{
   price: number;
   change: number;
@@ -26,6 +32,16 @@ const liveUrl = document.querySelector<HTMLElement>("[data-live-url]");
 const liveUrlCopy = document.querySelector<HTMLButtonElement>(
   "[data-copy-live-url]",
 );
+const htmlExample = document.querySelector<HTMLElement>("[data-html-example]");
+const htmlExampleCopy =
+  document.querySelector<HTMLButtonElement>("[data-copy-html]");
+const markdownExample = document.querySelector<HTMLElement>(
+  "[data-markdown-example]",
+);
+const markdownExampleCopy = document.querySelector<HTMLButtonElement>(
+  "[data-copy-markdown]",
+);
+const jsonExample = document.querySelector<HTMLElement>("[data-json-example]");
 const priceFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 4,
@@ -74,14 +90,47 @@ function svgElement(source: string): SVGSVGElement | undefined {
   return document.importNode(root, true) as unknown as SVGSVGElement;
 }
 
-function updateLiveUrl(ticker: string, timeframe: string): void {
-  const params = new URLSearchParams({ ticker, timeframe });
-  const nextUrl = new URL(
-    `/v1/sparkline?${params.toString()}`,
-    PUBLIC_API_ORIGIN,
-  ).href;
+function requestParams(state: RequestState): URLSearchParams {
+  const params = new URLSearchParams({
+    ticker: state.ticker,
+    timeframe: state.timeframe,
+  });
+  if (state.theme !== "light") params.set("theme", state.theme);
+  if (state.fill) params.set("fill", "true");
+  return params;
+}
+
+function requestDescription(state: RequestState): string {
+  return `${state.ticker} price over ${TIMEFRAME_LABELS[state.timeframe]}`;
+}
+
+function updateSharedExamples(state: RequestState, nextUrl: string): void {
+  const description = requestDescription(state);
+  const nextHtml = `<img
+  src="${nextUrl}"
+  alt="${description}"
+  width="160"
+  height="48"
+/>`;
+  const nextMarkdown = `![${description}](${nextUrl})`;
+
   if (liveUrl) liveUrl.textContent = nextUrl;
   if (liveUrlCopy) liveUrlCopy.dataset.copy = nextUrl;
+  if (htmlExample) htmlExample.textContent = nextHtml;
+  if (htmlExampleCopy) htmlExampleCopy.dataset.copy = nextHtml;
+  if (markdownExample) markdownExample.textContent = nextMarkdown;
+  if (markdownExampleCopy) markdownExampleCopy.dataset.copy = nextMarkdown;
+}
+
+function displayJson(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const displayValue = { ...(value as Record<string, unknown>) };
+  if (typeof displayValue.svg === "string") {
+    displayValue.svg = "<svg ...>...</svg>";
+  }
+  return JSON.stringify(displayValue, null, 2);
 }
 
 function selectMarketCard(ticker: string, timeframe: string): void {
@@ -174,8 +223,6 @@ for (const card of marketCards) {
   card.addEventListener("click", () => {
     const ticker = card.dataset.ticker;
     if (ticker === undefined) return;
-    updateLiveUrl(ticker, "1d");
-    selectMarketCard(ticker, "1d");
     document.dispatchEvent(
       new CustomEvent("ticker-line:select-sample", {
         detail: { ticker, timeframe: "1d" },
@@ -253,6 +300,34 @@ if (form) {
     "[data-copy-generated]",
   );
   let debounce: number | undefined;
+  let requestVersion = 0;
+  let responseAbort: AbortController | undefined;
+
+  const refreshResponseAndPreview = async (
+    state: RequestState,
+    nextPath: string,
+    version: number,
+  ): Promise<void> => {
+    responseAbort?.abort();
+    const controller = new AbortController();
+    responseAbort = controller;
+    const jsonParams = requestParams(state);
+    jsonParams.set("format", "json");
+
+    try {
+      const response = await fetch(`/v1/sparkline?${jsonParams.toString()}`, {
+        signal: controller.signal,
+      });
+      const payload: unknown = await response.json();
+      if (version !== requestVersion) return;
+      const nextJson = displayJson(payload);
+      if (jsonExample && nextJson) jsonExample.textContent = nextJson;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+    }
+
+    if (version === requestVersion && image) image.src = nextPath;
+  };
 
   const update = () => {
     if (!tickerInput || !timeframeInput || !themeInput || !fillInput) return;
@@ -268,17 +343,18 @@ if (form) {
     tickerInput.removeAttribute("aria-invalid");
     if (tickerError) tickerError.textContent = "";
 
-    const params = new URLSearchParams({
+    const state: RequestState = {
       ticker,
       timeframe: timeframeInput.value,
-      theme: themeInput.value,
-      fill: fillInput.value,
-    });
+      theme: themeInput.value === "dark" ? "dark" : "light",
+      fill: fillInput.value === "true",
+    };
+    const params = requestParams(state);
     const nextPath = `/v1/sparkline?${params.toString()}`;
     const nextUrl = new URL(nextPath, PUBLIC_API_ORIGIN).href;
 
-    updateLiveUrl(ticker, timeframeInput.value);
-    selectMarketCard(ticker, timeframeInput.value);
+    updateSharedExamples(state, nextUrl);
+    selectMarketCard(state.ticker, state.timeframe);
 
     if (generated) {
       generated.textContent = nextUrl;
@@ -286,9 +362,10 @@ if (form) {
     }
     if (frame) frame.dataset.previewState = "loading";
     if (image) {
-      image.alt = `${ticker} price over ${TIMEFRAME_LABELS[timeframeInput.value]}`;
-      image.src = nextPath;
+      image.alt = requestDescription(state);
     }
+    requestVersion += 1;
+    void refreshResponseAndPreview(state, nextPath, requestVersion);
   };
 
   form.addEventListener("input", () => {

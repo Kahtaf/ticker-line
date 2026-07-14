@@ -8,13 +8,14 @@ test.beforeEach(async ({ page }) => {
     const requestUrl = new URL(route.request().url());
     if (requestUrl.searchParams.get("format") === "json") {
       const ticker = requestUrl.searchParams.get("ticker") ?? "AAPL";
+      const timeframe = requestUrl.searchParams.get("timeframe") ?? "1m";
       const isDown = ticker === "USD/CAD";
       return route.fulfill({
         status: 200,
         contentType: "application/json; charset=utf-8",
         body: JSON.stringify({
           ticker,
-          timeframe: "1d",
+          timeframe,
           price: isDown ? 98.25 : 123.45,
           referencePrice: 120,
           change: isDown ? -1.75 : 3.45,
@@ -67,23 +68,37 @@ test("renders indexable documentation and a live product example", async ({
 test("loads common ticker presets into the live builder", async ({ page }) => {
   await page.goto("/");
   const builder = page.locator("[data-request-builder]");
+  const tickers = [
+    "AAPL",
+    "BTC/USD",
+    "SPY",
+    "NAS100-USD",
+    "XAU/USD",
+    "USD/CAD",
+  ];
 
-  await builder.getByRole("link", { name: "NAS100-USD" }).click();
+  for (const ticker of tickers) {
+    const encodedTicker = encodeURIComponent(ticker);
+    const nextUrl = `https://ticker-line.com/v1/sparkline?ticker=${encodedTicker}&timeframe=1m`;
+    const description = `${ticker} price over one month`;
 
-  await expect(builder.getByLabel("Ticker")).toHaveValue("NAS100-USD");
-  await expect(builder.locator("[data-generated-url]")).toContainText(
-    "https://ticker-line.com/v1/sparkline?ticker=NAS100-USD",
-  );
-  await expect(builder.locator("[data-generated-url]")).toHaveAttribute(
-    "href",
-    /ticker=NAS100-USD/,
-  );
-
-  await builder.getByRole("link", { name: "BTC/USD" }).click();
-  await expect(builder.getByLabel("Ticker")).toHaveValue("BTC/USD");
-  await expect(builder.locator("[data-generated-url]")).toContainText(
-    "ticker=BTC%2FUSD",
-  );
+    await builder.getByRole("link", { name: ticker, exact: true }).click();
+    await expect(builder.getByLabel("Ticker")).toHaveValue(ticker);
+    await expect(builder.locator("[data-generated-url]")).toHaveText(nextUrl);
+    await expect(page.locator("[data-live-url]")).toHaveText(nextUrl);
+    await expect(page.locator("[data-html-example]")).toContainText(
+      `src="${nextUrl}"`,
+    );
+    await expect(page.locator("[data-html-example]")).toContainText(
+      `alt="${description}"`,
+    );
+    await expect(page.locator("[data-markdown-example]")).toHaveText(
+      `![${description}](${nextUrl})`,
+    );
+    await expect(page.locator("[data-json-example]")).toContainText(
+      `"ticker": "${ticker}"`,
+    );
+  }
 });
 
 test("renders six market cards and synchronizes a card selection", async ({
@@ -114,6 +129,18 @@ test("renders six market cards and synchronizes a card selection", async ({
   await expect(builder.locator("[data-preview-image]")).toHaveAttribute(
     "alt",
     "XAU/USD price over one day",
+  );
+  await expect(page.locator("[data-html-example]")).toContainText(
+    'alt="XAU/USD price over one day"',
+  );
+  await expect(page.locator("[data-markdown-example]")).toHaveText(
+    "![XAU/USD price over one day](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1d)",
+  );
+  await expect(page.locator("[data-json-example]")).toContainText(
+    '"ticker": "XAU/USD"',
+  );
+  await expect(page.locator("[data-json-example]")).toContainText(
+    '"timeframe": "1d"',
   );
 });
 
@@ -159,6 +186,28 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   );
   await expect(builder.locator("[data-generated-url]")).toHaveText(
     /^https:\/\/ticker-line\.com\/v1\/sparkline\?/,
+  );
+  const synchronizedUrl =
+    "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=7d&theme=dark&fill=true";
+  await expect(builder.locator("[data-generated-url]")).toHaveText(
+    synchronizedUrl,
+  );
+  await expect(page.locator("[data-live-url]")).toHaveText(synchronizedUrl);
+  await expect(page.locator("[data-html-example]")).toContainText(
+    `src="${synchronizedUrl}"`,
+  );
+  await expect(page.locator("[data-markdown-example]")).toHaveText(
+    `![BTC/USD price over seven days](${synchronizedUrl})`,
+  );
+  await expect(page.locator("[data-json-example]")).toContainText(
+    '"timeframe": "7d"',
+  );
+  expect(
+    await page.locator("[data-copy-html]").getAttribute("data-copy"),
+  ).toContain(synchronizedUrl);
+  await expect(page.locator("[data-copy-markdown]")).toHaveAttribute(
+    "data-copy",
+    `![BTC/USD price over seven days](${synchronizedUrl})`,
   );
 });
 

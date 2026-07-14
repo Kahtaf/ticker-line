@@ -195,13 +195,13 @@ const structuredData = {
         <h2 id="usage-title">Usage</h2>
         <p class="code-label">HTML</p>
         <div class="code-block">
-          <pre tabindex="0"><code>{htmlExample}</code></pre>
-          <button type="button" data-copy={htmlExample}>Copy</button>
+          <pre tabindex="0"><code data-html-example>{htmlExample}</code></pre>
+          <button type="button" data-copy={htmlExample} data-copy-html>Copy</button>
         </div>
         <p class="code-label">Markdown</p>
         <div class="code-block">
-          <pre tabindex="0"><code>{markdownExample}</code></pre>
-          <button type="button" data-copy={markdownExample}>Copy</button>
+          <pre tabindex="0"><code data-markdown-example>{markdownExample}</code></pre>
+          <button type="button" data-copy={markdownExample} data-copy-markdown>Copy</button>
         </div>
       </section>
 
@@ -223,7 +223,7 @@ const structuredData = {
         <h2 id="response-title">Response</h2>
         <p class="section-copy">Set <code>format=json</code> to return quote data and the rendered SVG in JSON. Leaving the <code>format</code> option out returns an embeddable SVG.</p>
         <div class="code-block">
-          <pre tabindex="0"><code>{jsonExample}</code></pre>
+          <pre tabindex="0"><code data-json-example>{jsonExample}</code></pre>
         </div>
         <p class="section-copy"><code>price</code> is the latest close. Change values compare it with <code>referencePrice</code>; <code>changePercent</code> is expressed in percentage points.</p>
       </section>
