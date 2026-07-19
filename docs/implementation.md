@@ -155,7 +155,7 @@ Aliases in `src/providers/lse/symbols.ts` translate selected public symbols to L
 
 Calendar ranges use UTC-safe day, month, and year subtraction.
 
-One-day requests widen the provider lookback to eight days so reference and visible prices come from one provider call. `selectOneDaySeries` treats crypto and forex as continuous. Other assets are session-based and use a gap greater than two hours to find the latest session boundary. When a previous-session candle exists, it becomes `referenceClose`; otherwise the first visible close is used.
+One-day requests widen the provider lookback to eight days so reference and visible prices come from one provider call. `selectOneDaySeries` treats crypto and forex as continuous. Other assets are session-based and use a gap greater than two hours to find the latest session boundary. When a previous-session candle exists, it becomes `referenceClose`; otherwise the first visible close is used. If the latest candle is more than two 15-minute intervals behind the requested end, the trailing window is anchored to that candle. This preserves a complete final trading day through weekends and market closures instead of collapsing the chart to one point.
 
 ## Normalized data cache
 

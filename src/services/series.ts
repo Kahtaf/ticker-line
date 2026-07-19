@@ -64,6 +64,8 @@ function keyParts(
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1_000;
 const ONE_DAY_PROVIDER_LOOKBACK_MS = 8 * ONE_DAY_MS;
+const ONE_DAY_INTERVAL_MS = 15 * 60 * 1_000;
+const ONE_DAY_LATEST_CANDLE_GRACE_MS = 2 * ONE_DAY_INTERVAL_MS;
 const SESSION_GAP_MS = 2 * 60 * 60 * 1_000;
 
 function isSessionBased(assetType: AssetType): boolean {
@@ -74,10 +76,16 @@ function trailingPoints(
   points: readonly MarketPoint[],
   visibleStart: Date,
 ): readonly MarketPoint[] {
-  const visible = points.filter(
-    (point) => point.timestamp >= visibleStart.getTime(),
-  );
-  return visible.length > 0 ? visible : points.slice(-1);
+  const latest = points.at(-1);
+  if (latest === undefined) return [];
+  const requestedEnd = visibleStart.getTime() + ONE_DAY_MS;
+  const latestDelay = requestedEnd - latest.timestamp;
+  const effectiveStart =
+    latestDelay > ONE_DAY_LATEST_CANDLE_GRACE_MS
+      ? latest.timestamp - ONE_DAY_MS
+      : visibleStart.getTime();
+  const visible = points.filter((point) => point.timestamp >= effectiveStart);
+  return visible.length > 0 ? visible : [latest];
 }
 
 /**

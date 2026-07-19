@@ -70,27 +70,49 @@ describe("one-day series selection", () => {
     const input = series("crypto", [
       { timestamp: start - 15 * minute, close: 99 },
       { timestamp: start, close: 100 },
-      { timestamp: start + 15 * minute, close: 101 },
+      { timestamp: start + 12 * 60 * minute, close: 101 },
+      { timestamp: start + 24 * 60 * minute - 15 * minute, close: 102 },
     ]);
 
     const selected = selectOneDaySeries(input, new Date(start));
 
     expect(selected.referenceClose).toBe(100);
-    expect(selected.points.map(({ close }) => close)).toEqual([100, 101]);
+    expect(selected.points.map(({ close }) => close)).toEqual([100, 101, 102]);
   });
 
-  it("falls back to the trailing window if no exchange-session gap is present", () => {
-    const start = Date.parse("2026-07-10T12:00:00Z");
-    const input = series("index", [
-      { timestamp: start - 15 * minute, close: 50 },
-      { timestamp: start, close: 51 },
-      { timestamp: start + 15 * minute, close: 52 },
+  it("anchors the trailing window to the latest candle during a market closure", () => {
+    const visibleStart = new Date("2026-07-18T12:00:00Z");
+    const latest = Date.parse("2026-07-17T20:45:00Z");
+    const input = series("forex", [
+      { timestamp: latest - 25 * 60 * minute, close: 50 },
+      { timestamp: latest - 24 * 60 * minute, close: 51 },
+      { timestamp: latest - 12 * 60 * minute, close: 52 },
+      { timestamp: latest, close: 53 },
     ]);
 
-    const selected = selectOneDaySeries(input, new Date(start));
+    const selected = selectOneDaySeries(input, visibleStart);
 
     expect(selected.referenceClose).toBe(51);
-    expect(selected.points.map(({ close }) => close)).toEqual([51, 52]);
+    expect(selected.points.map(({ close }) => close)).toEqual([51, 52, 53]);
+  });
+
+  it("uses the latest-candle window when a continuous index has no session gap", () => {
+    const visibleStart = new Date("2026-07-18T12:00:00Z");
+    const latest = Date.parse("2026-07-17T20:45:00Z");
+    const input = series(
+      "index",
+      Array.from({ length: 14 }, (_, index) => ({
+        timestamp: latest - (26 - index * 2) * 60 * minute,
+        close: 100 + index,
+      })),
+    );
+
+    const selected = selectOneDaySeries(input, visibleStart);
+
+    expect(selected.referenceClose).toBe(101);
+    expect(selected.points).toHaveLength(13);
+    expect(selected.points[0]?.close).toBe(101);
+    expect(selected.points.at(-1)?.close).toBe(113);
   });
 
   it("widens a one-day fetch and derives quote data with one provider call", async () => {

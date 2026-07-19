@@ -141,7 +141,7 @@ The source interval and plotted-point target depend on the requested range:
 | `1y` | `1d` | 250 |
 | `5y` | `1w` | 250 |
 
-For `1d`, ticker-line makes one widened provider request. Exchange-traded instruments use the last close before the latest detected session gap as `referencePrice` and show the latest session. Continuously traded crypto and forex use the first visible close in the trailing 24-hour window. Longer timeframes use the first visible close.
+For `1d`, ticker-line makes one widened provider request. Exchange-traded instruments use the last close before the latest detected session gap as `referencePrice` and show the latest session. Continuously traded crypto and forex use the first visible close in the trailing 24-hour window. When a market is closed and its latest candle has fallen behind the wall-clock window, that window is anchored to the latest available candle so the last complete trading day remains visible. Longer timeframes use the first visible close.
 
 Provider rows are parsed as UTC, deduplicated by timestamp, sorted, and filtered to finite closes. A response with no usable points maps to `INSUFFICIENT_DATA`.
 

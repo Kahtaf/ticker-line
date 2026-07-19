@@ -42,7 +42,7 @@
     "PROVIDER_VERSION": "v1",
     "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
     "CACHE_POLICY_VERSION": "v1",
-    "NORMALIZATION_VERSION": "v2",
+    "NORMALIZATION_VERSION": "v3",
     "RENDERER_VERSION": "v4",
   },
   "observability": {
@@ -92,7 +92,7 @@
         "PROVIDER_VERSION": "v1",
         "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
         "CACHE_POLICY_VERSION": "v1",
-        "NORMALIZATION_VERSION": "v2",
+        "NORMALIZATION_VERSION": "v3",
         "RENDERER_VERSION": "v4",
       },
       "observability": {
