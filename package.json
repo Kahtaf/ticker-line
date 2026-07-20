@@ -39,7 +39,7 @@
     "deploy": "npm run build:site && wrangler deploy --env=\"\" --secrets-file .dev.vars"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.8.0",
+    "@hono/zod-validator": "^0.9.0",
     "hono": "^4.12.30",
     "zod": "^4.4.3"
   },
