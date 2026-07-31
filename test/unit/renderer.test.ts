@@ -15,6 +15,7 @@ const options = {
   theme: "light",
   fill: false,
   ticker: "AAPL",
+  market: "stock",
   timeframe: "1m",
 } as const;
 
@@ -151,7 +152,7 @@ describe("sparkline renderer", () => {
         svg,
       ),
     ).toBe(
-      '{"ticker":"AAPL","timeframe":"1m","price":208.4,"referencePrice":200,"change":8.4,"changePercent":4.2,"direction":"up","dataAsOf":"2026-01-01T00:00:00Z","svg":"<svg></svg>"}',
+      '{"ticker":"AAPL","market":"stock","timeframe":"1m","price":208.4,"referencePrice":200,"change":8.4,"changePercent":4.2,"direction":"up","dataAsOf":"2026-01-01T00:00:00Z","svg":"<svg></svg>"}',
     );
   });
 

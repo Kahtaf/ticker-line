@@ -16,6 +16,7 @@ import btc from "../fixtures/provider/sifting-btc.json";
 
 const baseRequest: MarketSeriesRequest = {
   ticker: "AAPL",
+  market: "stock",
   start: new Date("2026-07-01T12:00:00.000Z"),
   end: new Date("2026-07-31T12:00:00.000Z"),
   interval: "1d",
@@ -43,18 +44,17 @@ function providerWith(
 
 describe("Sifting symbols", () => {
   it.each([
-    ["AAPL", "stocks", "AAPL", "stock", "USD"],
-    ["SPY", "stocks", "SPY", "etf", "USD"],
-    ["BTC/USD", "crypto", "BTCUSD", "crypto", "USD"],
-    ["BTC-USD", "crypto", "BTCUSD", "crypto", "USD"],
-    ["XAU/USD", "commodities", "XAUUSD", "unknown", "USD"],
-    ["USD/CAD", "forex", "USDCAD", "forex", "CAD"],
-    ["EURUSD=X", "forex", "EURUSD", "forex", "USD"],
+    ["AAPL", "stock", "stocks", "AAPL", "stock", "USD"],
+    ["ANYCO", "stock", "stocks", "ANYCO", "stock", "USD"],
+    ["BTC/USD", "crypto", "crypto", "BTCUSD", "crypto", "USD"],
+    ["ANY/USD", "crypto", "crypto", "ANYUSD", "crypto", "USD"],
+    ["XAU/USD", "commodity", "commodities", "XAUUSD", "commodity", "USD"],
+    ["USD/CAD", "forex", "forex", "USDCAD", "forex", "CAD"],
   ] as const)(
-    "maps %s to the documented %s symbol format",
-    (ticker, market, symbol, assetType, currency) => {
-      expect(toSiftingSymbol(ticker)).toEqual({
-        market,
+    "maps typed %s to the documented provider format",
+    (ticker, inputMarket, providerMarket, symbol, assetType, currency) => {
+      expect(toSiftingSymbol(ticker, inputMarket)).toEqual({
+        market: providerMarket,
         symbol,
         assetType,
         currency,
@@ -62,10 +62,9 @@ describe("Sifting symbols", () => {
     },
   );
 
-  it.each(["NAS100/USD", "^GSPC", "VOD.L=X"])(
-    "leaves unsupported symbol %s for the next provider",
-    (ticker) => expect(toSiftingSymbol(ticker)).toBeUndefined(),
-  );
+  it("leaves the index market for the next provider", () => {
+    expect(toSiftingSymbol("NAS100/USD", "index")).toBeUndefined();
+  });
 });
 
 describe("SiftingProvider", () => {
@@ -102,7 +101,12 @@ describe("SiftingProvider", () => {
     const series = await providerWith(Response.json(btc), (request) => {
       requestedUrl = new URL(request.url);
     }).fetchSeries(
-      { ...baseRequest, ticker: "BTC/USD", interval: "1w" },
+      {
+        ...baseRequest,
+        ticker: "BTC/USD",
+        market: "crypto",
+        interval: "1w",
+      },
       context,
     );
 
@@ -191,7 +195,12 @@ describe("SiftingProvider", () => {
     });
 
     const series = await provider.fetchSeries(
-      { ...baseRequest, ticker: "BTC/USD", interval: "1w" },
+      {
+        ...baseRequest,
+        ticker: "BTC/USD",
+        market: "crypto",
+        interval: "1w",
+      },
       context,
     );
     expect(requestedUrls).toHaveLength(2);

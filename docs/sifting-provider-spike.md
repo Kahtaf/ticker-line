@@ -19,7 +19,7 @@ Authentication uses `X-API-Key`. Historical endpoints require gzip negotiation a
 | Forex | `/v1/hist/forex/:pair/bars` | `EURUSD`, `USDCAD` |
 | Commodities | `/v1/hist/commodities/:symbol/bars` | `XAUUSD`, `XAGUSD`, `WTIUSD` |
 
-The adapter translates ticker-line's provider-neutral slash syntax at the boundary. It does not replace one instrument with a proxy: `NAS100/USD` is not silently mapped to `QQQ`.
+The required public `market` parameter chooses the endpoint. The adapter translates slash syntax at the boundary but does not embed Sifting's symbol catalog, infer a market from a ticker, or replace one instrument with a proxy. `market=index` bypasses Sifting because Sifting has no index-history endpoint; `NAS100/USD` is not silently mapped to `QQQ`.
 
 ## Live probe results
 

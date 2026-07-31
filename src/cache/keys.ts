@@ -1,4 +1,5 @@
 import type { CanonicalSparklineRequest } from "../domain/request";
+import type { Market } from "../domain/market-series";
 import type { SourceInterval, Timeframe } from "../domain/timeframe";
 
 export type DataCacheKeyParts = Readonly<{
@@ -7,6 +8,7 @@ export type DataCacheKeyParts = Readonly<{
   providerVersion: string;
   normalizationVersion: string;
   ticker: string;
+  market: Market;
   timeframe: Timeframe;
   interval: SourceInterval;
 }>;
@@ -23,6 +25,7 @@ export function createDataCacheKey(parts: DataCacheKeyParts): string {
     parts.providerVersion,
     parts.normalizationVersion,
     parts.ticker,
+    parts.market,
     parts.timeframe,
     parts.interval,
   ]
@@ -45,6 +48,7 @@ export function createResponseCacheKey(
     `https://cache.internal/render/${segment(versions.rendererVersion)}/${segment(versions.normalizationVersion)}`,
   );
   url.searchParams.set("ticker", request.ticker);
+  url.searchParams.set("market", request.market);
   url.searchParams.set("timeframe", request.timeframe);
   url.searchParams.set("theme", request.theme);
   url.searchParams.set("fill", String(request.fill));

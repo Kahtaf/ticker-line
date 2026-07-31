@@ -23,6 +23,7 @@ test.beforeEach(async ({ page }) => {
     const requestUrl = new URL(route.request().url());
     if (requestUrl.searchParams.get("format") === "json") {
       const ticker = requestUrl.searchParams.get("ticker") ?? "AAPL";
+      const market = requestUrl.searchParams.get("market") ?? "stock";
       const timeframe = requestUrl.searchParams.get("timeframe") ?? "1m";
       const isDown = ticker === "USD/CAD";
       return route.fulfill({
@@ -30,6 +31,7 @@ test.beforeEach(async ({ page }) => {
         contentType: "application/json; charset=utf-8",
         body: JSON.stringify({
           ticker,
+          market,
           timeframe,
           price: isDown ? 98.25 : 123.45,
           referencePrice: 120,
@@ -101,21 +103,22 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
   await page.goto("/");
   const builder = page.locator("[data-request-builder]");
   const tickers = [
-    "AAPL",
-    "BTC/USD",
-    "SPY",
-    "NAS100/USD",
-    "XAU/USD",
-    "USD/CAD",
-  ];
+    ["AAPL", "stock"],
+    ["BTC/USD", "crypto"],
+    ["SPY", "stock"],
+    ["NAS100/USD", "index"],
+    ["XAU/USD", "commodity"],
+    ["USD/CAD", "forex"],
+  ] as const;
 
-  for (const ticker of tickers) {
+  for (const [ticker, market] of tickers) {
     const encodedTicker = encodeURIComponent(ticker);
-    const nextUrl = `https://ticker-line.com/v1/sparkline?ticker=${encodedTicker}&timeframe=1m`;
+    const nextUrl = `https://ticker-line.com/v1/sparkline?ticker=${encodedTicker}&market=${market}&timeframe=1m`;
     const description = `${ticker} price over one month`;
 
     await builder.getByRole("link", { name: ticker, exact: true }).click();
     await expect(builder.getByLabel("Ticker")).toHaveValue(ticker);
+    await expect(builder.getByLabel("Market")).toHaveValue(market);
     await expect(builder.locator("[data-generated-url]")).toHaveText(nextUrl);
     await expect(page.locator("[data-live-url]")).toHaveText(nextUrl);
     await expect(page.locator("[data-html-example]")).toContainText(
@@ -129,6 +132,9 @@ test("loads common ticker presets into the live builder", async ({ page }) => {
     );
     await expect(page.locator("[data-json-example]")).toContainText(
       `"ticker": "${ticker}"`,
+    );
+    await expect(page.locator("[data-json-example]")).toContainText(
+      `"market": "${market}"`,
     );
   }
 });
@@ -151,12 +157,13 @@ test("renders six market cards and synchronizes a card selection", async ({
 
   await expect(gold).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("[data-live-url]")).toHaveText(
-    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1d",
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&market=commodity&timeframe=1d",
   );
   await expect(builder.getByLabel("Ticker")).toHaveValue("XAU/USD");
+  await expect(builder.getByLabel("Market")).toHaveValue("commodity");
   await expect(builder.getByLabel("Timeframe")).toHaveValue("1d");
   await expect(builder.locator("[data-generated-url]")).toContainText(
-    "ticker=XAU%2FUSD&timeframe=1d",
+    "ticker=XAU%2FUSD&market=commodity&timeframe=1d",
   );
   await expect(builder.locator("[data-preview-image]")).toHaveAttribute(
     "alt",
@@ -166,7 +173,7 @@ test("renders six market cards and synchronizes a card selection", async ({
     'alt="XAU/USD price over one day"',
   );
   await expect(page.locator("[data-markdown-example]")).toHaveText(
-    "![XAU/USD price over one day](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1d)",
+    "![XAU/USD price over one day](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&market=commodity&timeframe=1d)",
   );
   await expect(page.locator("[data-json-example]")).toContainText(
     '"ticker": "XAU/USD"',
@@ -196,6 +203,7 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   const builder = page.locator("[data-request-builder]");
 
   await builder.getByLabel("Ticker").fill("btc/usd");
+  await builder.getByLabel("Market").selectOption("crypto");
   await builder.getByLabel("Timeframe").selectOption("7d");
   await builder.getByLabel("Theme").selectOption("dark");
   await builder.getByLabel("Fill").selectOption("true");
@@ -205,6 +213,9 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
   );
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "timeframe=7d",
+  );
+  await expect(builder.locator("[data-generated-url]")).toContainText(
+    "market=crypto",
   );
   await expect(builder.locator("[data-generated-url]")).toContainText(
     "theme=dark",
@@ -220,7 +231,7 @@ test("updates the request URL and preview accessibly", async ({ page }) => {
     /^https:\/\/ticker-line\.com\/v1\/sparkline\?/,
   );
   const synchronizedUrl =
-    "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=7d&theme=dark&fill=true";
+    "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&market=crypto&timeframe=7d&theme=dark&fill=true";
   await expect(builder.locator("[data-generated-url]")).toHaveText(
     synchronizedUrl,
   );
@@ -253,14 +264,15 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
   await builder.getByRole("link", { name: "XAU/USD" }).click();
 
   await expect(builder.getByLabel("Ticker")).toHaveValue("XAU/USD");
+  await expect(builder.getByLabel("Market")).toHaveValue("commodity");
   await expect(builder.locator("[data-generated-url]")).toContainText(
-    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD",
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&market=commodity",
   );
   await expect(page.locator(".docs-nav")).toBeHidden();
   await expect(page.locator("[data-service-status]")).toBeVisible();
   await expect(page.locator("[data-service-status]")).toHaveText("Status");
   await expect(page.locator(".compact-code code")).toHaveText(
-    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m",
+    "https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&market=commodity&timeframe=1m",
   );
   expect(
     await page
@@ -282,6 +294,9 @@ test("keeps ticker guidance provider-neutral", async ({ page }) => {
   await expect(
     page.locator("#request tbody tr").first().locator("td").nth(2),
   ).toHaveText("Use a supported market symbol.");
+  await expect(
+    page.locator("#request tbody tr").nth(1).locator("td").nth(2),
+  ).toHaveText("stock, crypto, forex, commodity, or index.");
 });
 
 test("styles inline code and omits section dividers", async ({ page }) => {

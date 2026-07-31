@@ -8,7 +8,7 @@ ticker-line is a hosted HTTP API that turns a market symbol and timeframe into a
 
 ```html
 <img
-  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m"
+  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m"
   alt="AAPL price over one month"
   width="160"
   height="48"
@@ -45,7 +45,7 @@ Core jobs:
 ### Sparkline endpoint
 
 ```http
-GET /v1/sparkline?ticker=AAPL&timeframe=1m
+GET /v1/sparkline?ticker=AAPL&market=stock&timeframe=1m
 ```
 
 `GET` and `HEAD` are supported. `OPTIONS` returns a CORS preflight response. Other methods return `405` behavior through the normal JSON or SVG error contract.
@@ -55,12 +55,13 @@ GET /v1/sparkline?ticker=AAPL&timeframe=1m
 | Parameter | Required | Default | Supported values |
 | --- | --- | --- | --- |
 | `ticker` | Yes | — | A symbol supported by an available market-data provider, up to 32 accepted characters |
+| `market` | Yes | — | `stock`, `crypto`, `forex`, `commodity`, `index` |
 | `timeframe` | No | `1m` | `1d`, `7d`, `1m`, `3m`, `1y`, `5y` |
 | `theme` | No | `light` | `light`, `dark` |
 | `fill` | No | `false` | `true`, `false` |
 | `format` | No | `svg` | `svg`, `json` |
 
-Ticker input is trimmed and normalized to uppercase. Slash symbols such as `BTC/USD`, `XAU/USD`, and `USD/CAD` are valid. Unsupported, unknown, or duplicated parameters are rejected rather than ignored. Equivalent defaults and casing are canonicalized before cache lookup.
+Ticker input is trimmed and normalized to uppercase. `market` is required because it selects the provider market directly; ticker-line does not maintain a symbol allowlist or infer a market from a ticker. Slash symbols such as `BTC/USD`, `XAU/USD`, and `USD/CAD` are valid. Missing, unsupported, unknown, or duplicated parameters are rejected rather than ignored. Equivalent defaults and casing are canonicalized before cache lookup.
 
 Chart dimensions are fixed at `160 × 48`. Consumers resize SVGs through normal HTML attributes or CSS; width and height are not cache dimensions.
 
@@ -86,6 +87,7 @@ Set `format=json` to return quote data and the rendered SVG:
 ```json
 {
   "ticker": "AAPL",
+  "market": "stock",
   "timeframe": "1m",
   "price": 314.98,
   "referencePrice": 296.34,
@@ -128,7 +130,7 @@ SVG-mode failures remain embeddable. They return HTTP `200`, a deterministic gra
 
 ## Market data and quote semantics
 
-Sifting is the primary market-data provider and London Strategic Edge is the secondary fallback. A provider may be skipped when its documented market or symbol format cannot represent the public ticker. Provider access, authentication, symbol aliases, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
+Sifting is the primary market-data provider and London Strategic Edge is the secondary fallback. The required `market` parameter selects the Sifting endpoint without consulting a hardcoded symbol catalog. `index` requests skip Sifting because it has no index-history endpoint and proceed directly to LSE. Provider access, authentication, market-specific symbol formatting, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
 
 The source interval and plotted-point target depend on the requested range:
 
@@ -143,16 +145,16 @@ The source interval and plotted-point target depend on the requested range:
 
 For `1d`, ticker-line makes one widened provider request. Exchange-traded instruments use the last close before the latest detected session gap as `referencePrice` and show the latest session. Continuously traded crypto and forex use the first visible close in the trailing 24-hour window. When a market is closed and its latest candle has fallen behind the wall-clock window, that window is anchored to the latest available candle so the last complete trading day remains visible. Longer timeframes use the first visible close.
 
-Provider rows are normalized to UTC epoch milliseconds, deduplicated by timestamp, sorted, and filtered to finite closes. A response with no usable points maps to `INSUFFICIENT_DATA`. Provider-specific symbol forms remain internal: for example, public `BTC/USD`, `XAU/USD`, and `USD/CAD` become Sifting `BTCUSD`, `XAUUSD`, and `USDCAD` respectively. Sifting has no equivalent for `NAS100/USD`, so that symbol uses the LSE fallback.
+Provider rows are normalized to UTC epoch milliseconds, deduplicated by timestamp, sorted, and filtered to finite closes. A response with no usable points maps to `INSUFFICIENT_DATA`. Provider-specific formatting remains internal: Sifting removes slash separators for non-stock markets, so `BTC/USD`, `XAU/USD`, and `USD/CAD` become `BTCUSD`, `XAUUSD`, and `USDCAD` when paired with `market=crypto`, `market=commodity`, and `market=forex`. LSE receives the public ticker unchanged.
 
 The public sample set covers:
 
-- Apple — `AAPL`
-- Bitcoin — `BTC/USD`
-- S&P 500 — `SPY`
-- Nasdaq 100 — `NAS100/USD`
-- Gold — `XAU/USD`
-- USD / CAD — `USD/CAD`
+- Apple — `AAPL`, `market=stock`
+- Bitcoin — `BTC/USD`, `market=crypto`
+- S&P 500 — `SPY`, `market=stock`
+- Nasdaq 100 — `NAS100/USD`, `market=index`
+- Gold — `XAU/USD`, `market=commodity`
+- USD / CAD — `USD/CAD`, `market=forex`
 
 Coverage is provider-dependent and does not guarantee every market or ticker.
 
@@ -186,7 +188,7 @@ Browser freshness is at most 60 seconds. Shared-cache freshness follows the rema
 
 When a data record is stale but still acceptable, the request receives the stale chart immediately and a background refresh is attempted. A failed refresh applies a one-minute retry backoff. Expired data is not served.
 
-Not-found results are cached for five minutes and insufficient-data results for ten minutes. Response and data cache keys include explicit renderer, normalization, provider, and policy versions so behavior changes can roll forward without a destructive purge.
+Not-found results are cached for five minutes and insufficient-data results for ten minutes. Response and data cache keys include `market` plus explicit renderer, normalization, provider, and policy versions so identically named instruments in different markets cannot collide and behavior changes can roll forward without a destructive purge.
 
 Clients can inspect `X-Cache`, `X-Data-As-Of`, `ETag`, and JSON `dataAsOf`. Conditional `If-None-Match` requests receive `304` when appropriate.
 

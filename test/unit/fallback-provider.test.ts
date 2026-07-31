@@ -10,6 +10,7 @@ import { FallbackProvider } from "../../src/providers/fallback";
 
 const request: MarketSeriesRequest = {
   ticker: "AAPL",
+  market: "stock",
   start: new Date("2026-07-01T00:00:00Z"),
   end: new Date("2026-07-31T00:00:00Z"),
   interval: "1d",

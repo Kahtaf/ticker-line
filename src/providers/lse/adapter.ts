@@ -92,11 +92,10 @@ export function parseLseUtcTimestamp(value: string): number | undefined {
 
 function normalizeRows(
   rows: readonly LseCandle[],
-  requestedTicker: string,
-  providerSymbol: string,
+  request: MarketSeriesRequest,
 ): MarketSeries {
   const byTimestamp = new Map<number, MarketPoint>();
-  let resolvedTicker = requestedTicker;
+  let resolvedTicker = request.ticker;
   for (const row of rows) {
     const timestamp = parseLseUtcTimestamp(row.ts);
     const close = typeof row.close === "number" ? row.close : Number(row.close);
@@ -104,7 +103,7 @@ function normalizeRows(
     byTimestamp.set(timestamp, { timestamp, close });
     if (row.symbol.length > 0)
       resolvedTicker =
-        row.symbol === providerSymbol ? requestedTicker : row.symbol;
+        row.symbol === request.ticker ? request.ticker : row.symbol;
   }
   const points = [...byTimestamp.values()].sort(
     (a, b) => a.timestamp - b.timestamp,
@@ -112,7 +111,7 @@ function normalizeRows(
   const latest = points.at(-1);
   if (latest === undefined) throw new InsufficientDataError();
 
-  const metadata = inferLseAssetMetadata(providerSymbol);
+  const metadata = inferLseAssetMetadata(request.ticker, request.market);
   const base: {
     resolvedTicker: string;
     assetType: AssetType;
@@ -249,7 +248,7 @@ export class LseProvider implements MarketDataProvider {
             "Provider returned an invalid candle payload.",
           );
         if (parsed.data.length === 0) throw new InsufficientDataError();
-        return normalizeRows(parsed.data, request.ticker, providerSymbol);
+        return normalizeRows(parsed.data, request);
       } catch (error) {
         if (
           error instanceof ProviderError ||

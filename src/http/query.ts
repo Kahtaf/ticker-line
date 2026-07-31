@@ -1,4 +1,5 @@
 import { InvalidRequestError } from "../domain/errors";
+import { MARKETS, type Market } from "../domain/market-series";
 import {
   DEFAULT_SPARKLINE_OPTIONS,
   FILLS,
@@ -11,6 +12,7 @@ import { TIMEFRAMES } from "../domain/timeframe";
 
 const ALLOWED_PARAMETERS = new Set([
   "ticker",
+  "market",
   "timeframe",
   "theme",
   "fill",
@@ -73,6 +75,18 @@ export function parseSparklineRequest(
   if (tickerValue === undefined || tickerValue.length === 0) {
     throw new InvalidRequestError("Parameter 'ticker' is required.");
   }
+
+  const marketValue = oneValue(url, "market");
+  if (marketValue === undefined || marketValue.length === 0) {
+    throw new InvalidRequestError(
+      "Parameter 'market' is required. Use one of: stock, crypto, forex, commodity, index.",
+    );
+  }
+  if (!MARKETS.includes(marketValue as Market)) {
+    throw new InvalidRequestError(
+      "Parameter 'market' must be one of: stock, crypto, forex, commodity, index.",
+    );
+  }
   if (
     tickerValue.length > MAX_TICKER_LENGTH ||
     !TICKER_PATTERN.test(tickerValue)
@@ -110,6 +124,7 @@ export function parseSparklineRequest(
 
   return {
     ticker: tickerValue.toUpperCase(),
+    market: marketValue as Market,
     timeframe,
     theme,
     fill,

@@ -30,6 +30,7 @@ const parts: DataCacheKeyParts = {
   providerVersion: "v1",
   normalizationVersion: "v1",
   ticker: "AAPL",
+  market: "stock",
   timeframe: "1m",
   interval: "1d",
 };
@@ -96,7 +97,7 @@ describe("MarketDataCache", () => {
   it("treats malformed and unknown-version values as sanitized misses", async () => {
     const kv = new MemoryKv();
     kv.values.set(
-      "market-data:v1:lse:v1:v1:AAPL:1m:1d",
+      "market-data:v1:lse:v1:v1:AAPL:stock:1m:1d",
       JSON.stringify({ schemaVersion: 999, secret: "must-not-log" }),
     );
     const warn = vi.fn();
@@ -104,7 +105,7 @@ describe("MarketDataCache", () => {
     expect(await cache.read(parts, now)).toEqual({ state: "miss" });
     expect(warn).toHaveBeenCalledWith({
       event: "invalid_data_cache_record",
-      cacheKey: "market-data:v1:lse:v1:v1:AAPL:1m:1d",
+      cacheKey: "market-data:v1:lse:v1:v1:AAPL:stock:1m:1d",
     });
   });
 

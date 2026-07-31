@@ -6,10 +6,10 @@
 Market sparklines through a URL. ticker-line turns a market symbol and timeframe into a small, cacheable SVG for HTML, Markdown, dashboards, and anywhere else images work.
 
 ```text
-https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m
+https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m
 ```
 
-![AAPL price over one month](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m&fill=true)
+![AAPL price over one month](https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m&fill=true)
 
 The public API requires no client API key. See the [live documentation](https://ticker-line.com) for the interactive request builder, response contract, errors, and cache freshness.
 
@@ -19,7 +19,7 @@ Use the SVG directly as an image:
 
 ```html
 <img
-  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m"
+  src="https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m"
   alt="AAPL price over one month"
   width="160"
   height="48"
@@ -29,27 +29,27 @@ Use the SVG directly as an image:
 Or in Markdown:
 
 ```markdown
-![AAPL price over one month](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m)
+![AAPL price over one month](https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m)
 ```
 
 Set `format=json` to receive quote data and the rendered SVG together:
 
 ```sh
-curl "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=1d&format=json"
+curl "https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&market=crypto&timeframe=1d&format=json"
 ```
 
 ## Examples
 
 These are the same examples available in the live request builder.
 
-| Market     | Ticker       | Live chart                                                                                     |
-| ---------- | ------------ | ---------------------------------------------------------------------------------------------- |
-| Apple      | `AAPL`       | ![AAPL sparkline](https://ticker-line.com/v1/sparkline?ticker=AAPL&timeframe=1m)               |
-| Bitcoin    | `BTC/USD`    | ![BTC/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&timeframe=1m)       |
-| S&P 500    | `SPY`        | ![SPY sparkline](https://ticker-line.com/v1/sparkline?ticker=SPY&timeframe=1m)                 |
-| Nasdaq 100 | `NAS100/USD` | ![NAS100/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=NAS100%2FUSD&timeframe=1m) |
-| Gold       | `XAU/USD`    | ![XAU/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m)       |
-| USD / CAD  | `USD/CAD`    | ![USD/CAD sparkline](https://ticker-line.com/v1/sparkline?ticker=USD%2FCAD&timeframe=1m)       |
+| Example    | Ticker       | `market`    | Live chart                                                                                                  |
+| ---------- | ------------ | ----------- | ----------------------------------------------------------------------------------------------------------- |
+| Apple      | `AAPL`       | `stock`     | ![AAPL sparkline](https://ticker-line.com/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m)               |
+| Bitcoin    | `BTC/USD`    | `crypto`    | ![BTC/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=BTC%2FUSD&market=crypto&timeframe=1m)      |
+| S&P 500    | `SPY`        | `stock`     | ![SPY sparkline](https://ticker-line.com/v1/sparkline?ticker=SPY&market=stock&timeframe=1m)                 |
+| Nasdaq 100 | `NAS100/USD` | `index`     | ![NAS100/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=NAS100%2FUSD&market=index&timeframe=1m) |
+| Gold       | `XAU/USD`    | `commodity` | ![XAU/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&market=commodity&timeframe=1m)   |
+| USD / CAD  | `USD/CAD`    | `forex`     | ![USD/CAD sparkline](https://ticker-line.com/v1/sparkline?ticker=USD%2FCAD&market=forex&timeframe=1m)       |
 
 Coverage comes from the configured market-data providers and varies by symbol and market.
 
@@ -57,19 +57,21 @@ Coverage comes from the configured market-data providers and varies by symbol an
 
 `GET https://ticker-line.com/v1/sparkline`
 
-| Parameter   | Required | Default | Values                             |
-| ----------- | -------- | ------- | ---------------------------------- |
-| `ticker`    | Yes      | —       | A supported market symbol          |
-| `timeframe` | No       | `1m`    | `1d`, `7d`, `1m`, `3m`, `1y`, `5y` |
-| `theme`     | No       | `light` | `light`, `dark`                    |
-| `fill`      | No       | `false` | `true`, `false`                    |
-| `format`    | No       | `svg`   | `svg`, `json`                      |
+| Parameter   | Required | Default | Values                                           |
+| ----------- | -------- | ------- | ------------------------------------------------ |
+| `ticker`    | Yes      | —       | A supported market symbol                        |
+| `market`    | Yes      | —       | `stock`, `crypto`, `forex`, `commodity`, `index` |
+| `timeframe` | No       | `1m`    | `1d`, `7d`, `1m`, `3m`, `1y`, `5y`               |
+| `theme`     | No       | `light` | `light`, `dark`                                  |
+| `fill`      | No       | `false` | `true`, `false`                                  |
+| `format`    | No       | `svg`   | `svg`, `json`                                    |
 
-Successful JSON responses include the normalized ticker, timeframe, latest price, reference price, absolute and percentage change, direction, source timestamp, and rendered SVG:
+Successful JSON responses include the ticker, market, timeframe, latest price, reference price, absolute and percentage change, direction, source timestamp, and rendered SVG:
 
 ```json
 {
   "ticker": "AAPL",
+  "market": "stock",
   "timeframe": "1m",
   "price": 314.98,
   "referencePrice": 296.34,

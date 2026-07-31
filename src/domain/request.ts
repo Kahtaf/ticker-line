@@ -1,3 +1,4 @@
+import type { Market } from "./market-series";
 import type { Timeframe } from "./timeframe";
 
 export const THEMES = ["light", "dark"] as const;
@@ -11,6 +12,7 @@ export type OutputFormat = (typeof FORMATS)[number];
 
 export type CanonicalSparklineRequest = Readonly<{
   ticker: string;
+  market: Market;
   timeframe: Timeframe;
   theme: Theme;
   fill: boolean;
@@ -22,13 +24,14 @@ export const DEFAULT_SPARKLINE_OPTIONS = {
   theme: "light",
   fill: false,
   format: "svg",
-} as const satisfies Omit<CanonicalSparklineRequest, "ticker">;
+} as const satisfies Omit<CanonicalSparklineRequest, "ticker" | "market">;
 
 export function serializeCanonicalRequest(
   request: CanonicalSparklineRequest,
 ): string {
   const values = [
     ["ticker", request.ticker],
+    ["market", request.market],
     ["timeframe", request.timeframe],
     ["theme", request.theme],
     ["fill", String(request.fill)],

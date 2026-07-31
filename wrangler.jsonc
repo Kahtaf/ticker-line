@@ -43,7 +43,7 @@
     "SIFTING_BASE_URL": "https://api.sifting.io",
     "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
     "CACHE_POLICY_VERSION": "v1",
-    "NORMALIZATION_VERSION": "v4",
+    "NORMALIZATION_VERSION": "v5",
     "RENDERER_VERSION": "v4",
   },
   "observability": {
@@ -94,7 +94,7 @@
         "SIFTING_BASE_URL": "https://api.sifting.io",
         "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
         "CACHE_POLICY_VERSION": "v1",
-        "NORMALIZATION_VERSION": "v4",
+        "NORMALIZATION_VERSION": "v5",
         "RENDERER_VERSION": "v4",
       },
       "observability": {

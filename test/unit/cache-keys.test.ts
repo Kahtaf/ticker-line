@@ -14,16 +14,18 @@ describe("cache keys", () => {
         providerVersion: "v1",
         normalizationVersion: "v1",
         ticker: "BTC-USD",
+        market: "crypto",
         timeframe: "1m",
         interval: "1d",
       }),
-    ).toBe("market-data:v1:lse:v1:v1:BTC-USD:1m:1d");
+    ).toBe("market-data:v1:lse:v1:v1:BTC-USD:crypto:1m:1d");
   });
 
   it("orders every generated-response variant explicitly", () => {
     const key = createResponseCacheKey(
       {
         ticker: "AAPL",
+        market: "stock",
         timeframe: "1m",
         theme: "light",
         fill: false,
@@ -32,7 +34,7 @@ describe("cache keys", () => {
       { rendererVersion: "v1", normalizationVersion: "v1" },
     );
     expect(key.url).toBe(
-      "https://cache.internal/render/v1/v1?ticker=AAPL&timeframe=1m&theme=light&fill=false&format=svg",
+      "https://cache.internal/render/v1/v1?ticker=AAPL&market=stock&timeframe=1m&theme=light&fill=false&format=svg",
     );
   });
 

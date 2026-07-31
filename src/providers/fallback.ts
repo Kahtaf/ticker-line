@@ -60,6 +60,7 @@ export class FallbackProvider implements MarketDataProvider {
           providerId: provider.id,
           fallbackProviderId: fallback.id,
           ticker: request.ticker,
+          market: request.market,
           providerStatus:
             error instanceof ProviderError ? error.providerStatus : undefined,
           ...errorLogFields(error),

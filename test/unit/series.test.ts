@@ -128,6 +128,7 @@ describe("one-day series selection", () => {
     );
     const request: CanonicalSparklineRequest = {
       ticker: "AAPL",
+      market: "stock",
       timeframe: "1d",
       theme: "light",
       fill: false,
@@ -168,6 +169,7 @@ describe("one-day series selection", () => {
     expect(recordMarketData).toHaveBeenCalledWith("operational", now);
     expect(fetchSeries.mock.calls[0]?.[0]).toMatchObject({
       ticker: "AAPL",
+      market: "stock",
       interval: "15m",
       start: new Date("2026-07-05T12:00:00Z"),
       end: now,

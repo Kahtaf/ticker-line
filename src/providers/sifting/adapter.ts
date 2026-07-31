@@ -94,7 +94,7 @@ function normalizePayloads(
   return {
     resolvedTicker: requestedTicker,
     assetType: resolved.assetType,
-    currency: resolved.currency,
+    ...(resolved.currency === undefined ? {} : { currency: resolved.currency }),
     ...(resolved.market === "stocks"
       ? { timezone: "America/New_York" }
       : { timezone: "UTC" }),
@@ -129,7 +129,7 @@ export class SiftingProvider implements MarketDataProvider {
     request: MarketSeriesRequest,
     context: ProviderRequestContext,
   ): Promise<MarketSeries> {
-    const resolved = toSiftingSymbol(request.ticker);
+    const resolved = toSiftingSymbol(request.ticker, request.market);
     if (resolved === undefined) throw new ProviderNotFoundError();
     const initialUrl = buildBarsUrl(this.#baseUrl, request, resolved);
     const deadline = Date.now() + this.#timeoutMs;

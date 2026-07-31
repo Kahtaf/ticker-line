@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 const description =
   'Embed sparklines of stock, crypto, indices and more in HTML, markdown, and anywhere else images work.'
 
-const directUrl = '/v1/sparkline?ticker=AAPL&timeframe=1m'
+const directUrl = '/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m'
 const directAbsoluteUrl = `https://ticker-line.com${directUrl}`
 const htmlExample = `<img
   src="${directAbsoluteUrl}"
@@ -15,6 +15,7 @@ const htmlExample = `<img
 const markdownExample = `![AAPL price over one month](${directAbsoluteUrl})`
 const jsonExample = `{
   "ticker": "AAPL",
+  "market": "stock",
   "timeframe": "1m",
   "price": 314.98,
   "referencePrice": 296.34,
@@ -26,17 +27,18 @@ const jsonExample = `{
 }`
 
 const samples = [
-  { ticker: 'AAPL', name: 'Apple' },
-  { ticker: 'BTC/USD', name: 'Bitcoin' },
-  { ticker: 'SPY', name: 'S&P 500' },
-  { ticker: 'NAS100/USD', name: 'Nasdaq 100' },
-  { ticker: 'XAU/USD', name: 'Gold' },
-  { ticker: 'USD/CAD', name: 'USD / CAD' },
+  { ticker: 'AAPL', market: 'stock', name: 'Apple' },
+  { ticker: 'BTC/USD', market: 'crypto', name: 'Bitcoin' },
+  { ticker: 'SPY', market: 'stock', name: 'S&P 500' },
+  { ticker: 'NAS100/USD', market: 'index', name: 'Nasdaq 100' },
+  { ticker: 'XAU/USD', market: 'commodity', name: 'Gold' },
+  { ticker: 'USD/CAD', market: 'forex', name: 'USD / CAD' },
 ]
-const presets = samples.map(({ ticker }) => ({ label: ticker, ticker }))
+const presets = samples.map(({ ticker, market }) => ({ label: ticker, ticker, market }))
 
 const parameters = [
   ['ticker', 'required', '—', 'Use a supported market symbol.'],
+  ['market', 'required', '—', 'stock, crypto, forex, commodity, or index.'],
   ['timeframe', 'optional', '1m', '1d, 7d, 1m, 3m, 1y, or 5y.'],
   ['theme', 'optional', 'light', 'light or dark.'],
   ['fill', 'optional', 'false', 'Fill gains and losses to the chart reference line.'],
@@ -100,7 +102,7 @@ const structuredData = {
         <h1>Market sparklines through a URL</h1>
         <p>Embed sparklines of stock, crypto, indices and more in HTML, markdown, and anywhere else images work.</p>
         <div class="market-rail" role="group" aria-label="Example market charts" data-market-rail>
-          {samples.map(({ ticker, name }) => (
+          {samples.map(({ ticker, market, name }) => (
             <button
               type="button"
               class="market-card"
@@ -108,6 +110,7 @@ const structuredData = {
               aria-pressed="false"
               data-market-card
               data-ticker={ticker}
+              data-market={market}
               data-market-state="loading"
             >
               <span class="market-card-heading">
@@ -139,8 +142,8 @@ const structuredData = {
         <form class="request-builder" data-request-builder novalidate>
           <div class="preset-row" aria-label="Examples">
             <span>Examples</span>
-            {presets.map(({ label, ticker }) => (
-              <a href={`/v1/sparkline?ticker=${encodeURIComponent(ticker)}&timeframe=1m`} data-ticker-preset={ticker}>{label}</a>
+            {presets.map(({ label, ticker, market }) => (
+              <a href={`/v1/sparkline?ticker=${encodeURIComponent(ticker)}&market=${market}&timeframe=1m`} data-ticker-preset={ticker} data-market-preset={market}>{label}</a>
             ))}
           </div>
 
@@ -149,6 +152,16 @@ const structuredData = {
               <span>Ticker</span>
               <input name="ticker" value="AAPL" autocomplete="off" spellcheck="false" maxlength="32" aria-describedby="ticker-error" />
               <small class="field-error" id="ticker-error" data-ticker-error aria-live="polite"></small>
+            </label>
+            <label>
+              <span>Market</span>
+              <select name="market" required>
+                <option value="stock" selected>Stock</option>
+                <option value="crypto">Crypto</option>
+                <option value="forex">Forex</option>
+                <option value="commodity">Commodity</option>
+                <option value="index">Index</option>
+              </select>
             </label>
             <label>
               <span>Timeframe</span>
@@ -211,7 +224,7 @@ const structuredData = {
             <thead><tr><th>Name</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
               {parameters.map(([name, requirement, fallback, detail]) => (
-                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported market symbol.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
+                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported market symbol.</> : name === 'market' ? <><code>stock</code>, <code>crypto</code>, <code>forex</code>, <code>commodity</code>, or <code>index</code>.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
               ))}
             </tbody>
           </table>
@@ -231,7 +244,7 @@ const structuredData = {
         <h2 id="errors-title">Errors</h2>
         <p class="section-copy">SVG requests stay embeddable: failures return HTTP 200 with a gray fallback image and error details in headers. JSON requests use semantic status codes.</p>
         <div class="error-example">
-          <img src="/v1/sparkline?ticker=THIS_SYMBOL_SHOULD_NOT_EXIST&timeframe=1m" width="160" height="48" loading="lazy" alt="Gray fallback sparkline for an unknown ticker" />
+          <img src="/v1/sparkline?ticker=THIS_SYMBOL_SHOULD_NOT_EXIST&market=stock&timeframe=1m" width="160" height="48" loading="lazy" alt="Gray fallback sparkline for an unknown ticker" />
           <pre><code>X-Error-Code: TICKER_NOT_FOUND
 X-Error-Status: 404</code></pre>
         </div>
