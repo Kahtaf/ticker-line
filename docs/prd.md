@@ -280,13 +280,13 @@ Charts may be delayed or contain errors and are not financial advice. The websit
 
 ## References
 
-- [London Strategic Edge data overview](https://londonstrategicedge.com/data/#overview)
-- [London Strategic Edge API documentation](https://londonstrategicedge.com/api-documentation/)
-- [London Strategic Edge terms](https://londonstrategicedge.com/terms-of-service)
 - [Sifting API documentation](https://sifting.io/docs)
 - [Sifting symbol catalog](https://sifting.io/symbols)
 - [Sifting pricing and usage tiers](https://sifting.io/pricing)
 - [Sifting terms of use](https://sifting.io/legal/terms-of-use)
+- [London Strategic Edge data overview](https://londonstrategicedge.com/data/#overview)
+- [London Strategic Edge API documentation](https://londonstrategicedge.com/api-documentation/)
+- [London Strategic Edge terms](https://londonstrategicedge.com/terms-of-service)
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [Cloudflare Workers KV](https://developers.cloudflare.com/kv/)
 - [Cloudflare Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)

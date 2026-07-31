@@ -1,15 +1,16 @@
-# LSE Provider Spike
+# London Strategic Edge Provider Spike
 
 - **Status:** Complete
 - **Run date:** 2026-07-12
-- **Provider:** London Strategic Edge (LSE)
+- **Current provider order:** Sifting first, London Strategic Edge (LSE) second
+- **Provider evaluated here:** London Strategic Edge (LSE)
 - **Live-call budget:** 15 calls maximum
 - **Live calls made:** 15
 - **Related documents:** [`docs/prd.md`](./prd.md), [`docs/implementation.md`](./implementation.md)
 
 ## 1. Purpose
 
-This spike closes the highest-risk implementation questions around the LSE candle API before the provider adapter is built. It covers timestamp semantics, provisional candles, price adjustments, international and ambiguous symbols, the `dataset` discriminator, catalog filtering, error envelopes, and metadata availability.
+This historical spike closes the highest-risk implementation questions around the LSE candle API before its provider adapter was built. Sifting is now the primary provider; LSE supplies secondary fallback coverage. The spike covers timestamp semantics, provisional candles, price adjustments, international and ambiguous symbols, the `dataset` discriminator, catalog filtering, error envelopes, and metadata availability.
 
 The product owner has confirmed written LSE permission for automated use, caching, derived public SVG redistribution, and commercial use. That permission is accepted as a project fact and was not re-evaluated by this spike.
 
@@ -23,7 +24,7 @@ The product owner has confirmed written LSE permission for automated use, cachin
 - Did not attempt to exhaust the rate limit or monthly allowance.
 - Did not mutate provider state.
 
-Primary provider references:
+LSE references:
 
 - [Official REST API overview](https://londonstrategicedge.com/free-market-data-api/)
 - [Official API reference surface](https://londonstrategicedge.com/docs/api/)

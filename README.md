@@ -92,8 +92,8 @@ SVG requests remain embeddable when something goes wrong: the API returns a gray
 Requirements:
 
 - Node.js 22.12 or newer
-- A [Sifting API key](https://sifting.io/register)
-- An [LSE API key](https://londonstrategicedge.com/data#api) for fallback coverage
+- A [Sifting API key](https://sifting.io/register) for the primary provider
+- A [London Strategic Edge API key](https://londonstrategicedge.com/data#api) for secondary fallback coverage
 - Wrangler authentication for deployment only
 
 Install dependencies and configure the local Worker:
