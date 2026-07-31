@@ -8,23 +8,26 @@ import {
   ProviderTimeoutError,
 } from "../../domain/errors";
 import type {
-  AssetType,
   MarketDataProvider,
   MarketPoint,
   MarketSeries,
   MarketSeriesRequest,
   ProviderRequestContext,
 } from "../../domain/market-series";
+import type { SourceInterval } from "../../domain/timeframe";
+import { parseRetryAfter, readBoundedBody } from "../http";
 import {
-  PROVIDER_MAX_RAW_POINTS,
   PROVIDER_REQUEST_TIMEOUT_MS,
   PROVIDER_RESPONSE_MAX_BYTES,
 } from "../provider";
-import { parseRetryAfter, readBoundedBody } from "../http";
-import { lseCandlesSchema, type LseCandle } from "./schema";
-import { inferLseAssetMetadata, toLseSymbol } from "./symbols";
+import { siftingBarsSchema, type SiftingBars } from "./schema";
+import {
+  toSiftingSymbol,
+  type SiftingMarket,
+  type SiftingSymbol,
+} from "./symbols";
 
-export type LseProviderOptions = Readonly<{
+export type SiftingProviderOptions = Readonly<{
   apiKey: string;
   baseUrl?: string;
   fetch?: typeof fetch;
@@ -33,121 +36,76 @@ export type LseProviderOptions = Readonly<{
   maxAttempts?: 1 | 2;
 }>;
 
-const UTC_TIMESTAMP =
-  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?$/;
+const MARKET_LIMITS: Readonly<Record<SiftingMarket, number>> = {
+  stocks: 2_000,
+  forex: 2_000,
+  crypto: 5_000,
+  commodities: 2_000,
+};
 
-/** Parse LSE's timezone-less candle label explicitly as UTC. */
-export function parseLseUtcTimestamp(value: string): number | undefined {
-  const match = UTC_TIMESTAMP.exec(value);
-  if (match === null) return undefined;
-  const [
-    ,
-    yearText,
-    monthText,
-    dayText,
-    hourText,
-    minuteText,
-    secondText,
-    fraction = "",
-  ] = match;
-  if (
-    yearText === undefined ||
-    monthText === undefined ||
-    dayText === undefined ||
-    hourText === undefined ||
-    minuteText === undefined ||
-    secondText === undefined
-  ) {
-    return undefined;
-  }
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-  const second = Number(secondText);
-  const millisecond = Number(fraction.padEnd(3, "0").slice(0, 3));
-  const timestamp = Date.UTC(
-    year,
-    month - 1,
-    day,
-    hour,
-    minute,
-    second,
-    millisecond,
-  );
-  const parsed = new Date(timestamp);
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day ||
-    parsed.getUTCHours() !== hour ||
-    parsed.getUTCMinutes() !== minute ||
-    parsed.getUTCSeconds() !== second
-  ) {
-    return undefined;
-  }
-  return timestamp;
+function toSiftingInterval(
+  market: SiftingMarket,
+  interval: SourceInterval,
+): Exclude<SourceInterval, "1w"> | "1w" {
+  return interval === "1w" && market !== "stocks" ? "1d" : interval;
 }
 
-function normalizeRows(
-  rows: readonly LseCandle[],
+function buildBarsUrl(
+  baseUrl: string,
+  request: MarketSeriesRequest,
+  resolved: SiftingSymbol,
+): URL {
+  const symbol = encodeURIComponent(resolved.symbol);
+  const url = new URL(
+    `${baseUrl.replace(/\/$/, "")}/v1/hist/${resolved.market}/${symbol}/bars`,
+  );
+  url.searchParams.set("start", request.start.toISOString());
+  url.searchParams.set("end", request.end.toISOString());
+  url.searchParams.set(
+    "interval",
+    toSiftingInterval(resolved.market, request.interval),
+  );
+  url.searchParams.set("limit", String(MARKET_LIMITS[resolved.market]));
+  return url;
+}
+
+function normalizePayloads(
+  payloads: readonly SiftingBars[],
   requestedTicker: string,
-  providerSymbol: string,
+  resolved: SiftingSymbol,
 ): MarketSeries {
   const byTimestamp = new Map<number, MarketPoint>();
-  let resolvedTicker = requestedTicker;
-  for (const row of rows) {
-    const timestamp = parseLseUtcTimestamp(row.ts);
-    const close = typeof row.close === "number" ? row.close : Number(row.close);
-    if (timestamp === undefined || !Number.isFinite(close)) continue;
-    byTimestamp.set(timestamp, { timestamp, close });
-    if (row.symbol.length > 0)
-      resolvedTicker =
-        row.symbol === providerSymbol ? requestedTicker : row.symbol;
+  for (const payload of payloads) {
+    for (const row of payload.data) {
+      if (!Number.isFinite(row.t) || !Number.isFinite(row.c)) continue;
+      byTimestamp.set(row.t, { timestamp: row.t, close: row.c });
+      if (byTimestamp.size > 5_000) {
+        throw new ProviderSchemaError(
+          "Provider returned too many points for a bounded sparkline request.",
+        );
+      }
+    }
   }
   const points = [...byTimestamp.values()].sort(
-    (a, b) => a.timestamp - b.timestamp,
+    (left, right) => left.timestamp - right.timestamp,
   );
   const latest = points.at(-1);
   if (latest === undefined) throw new InsufficientDataError();
-
-  const metadata = inferLseAssetMetadata(providerSymbol);
-  const base: {
-    resolvedTicker: string;
-    assetType: AssetType;
-    currency?: string;
-    dataAsOf: string;
-    referenceClose: number;
-    points: readonly MarketPoint[];
-  } = {
-    resolvedTicker,
-    assetType: metadata.assetType,
+  return {
+    resolvedTicker: requestedTicker,
+    assetType: resolved.assetType,
+    currency: resolved.currency,
+    ...(resolved.market === "stocks"
+      ? { timezone: "America/New_York" }
+      : { timezone: "UTC" }),
     dataAsOf: new Date(latest.timestamp).toISOString(),
     referenceClose: points[0]?.close ?? latest.close,
     points,
   };
-  if (metadata.currency !== undefined) base.currency = metadata.currency;
-  return base;
 }
 
-function buildCandlesUrl(
-  baseUrl: string,
-  request: MarketSeriesRequest,
-  symbol: string,
-): URL {
-  const url = new URL(`${baseUrl.replace(/\/$/, "")}/candles`);
-  url.searchParams.set("symbol", symbol);
-  url.searchParams.set("timeframe", request.interval);
-  url.searchParams.set("start", request.start.toISOString().slice(0, 10));
-  url.searchParams.set("end", request.end.toISOString().slice(0, 10));
-  url.searchParams.set("order", "asc");
-  url.searchParams.set("limit", String(PROVIDER_MAX_RAW_POINTS));
-  return url;
-}
-
-export class LseProvider implements MarketDataProvider {
-  readonly id = "lse";
+export class SiftingProvider implements MarketDataProvider {
+  readonly id = "sifting";
   readonly #apiKey: string;
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
@@ -155,12 +113,11 @@ export class LseProvider implements MarketDataProvider {
   readonly #maxResponseBytes: number;
   readonly #maxAttempts: 1 | 2;
 
-  constructor(options: LseProviderOptions) {
+  constructor(options: SiftingProviderOptions) {
     if (options.apiKey.length === 0)
-      throw new TypeError("LSE API key is required.");
+      throw new TypeError("Sifting API key is required.");
     this.#apiKey = options.apiKey;
-    this.#baseUrl =
-      options.baseUrl ?? "https://api.londonstrategicedge.com/vault";
+    this.#baseUrl = options.baseUrl ?? "https://api.sifting.io";
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#timeoutMs = options.timeoutMs ?? PROVIDER_REQUEST_TIMEOUT_MS;
     this.#maxResponseBytes =
@@ -172,9 +129,53 @@ export class LseProvider implements MarketDataProvider {
     request: MarketSeriesRequest,
     context: ProviderRequestContext,
   ): Promise<MarketSeries> {
-    const providerSymbol = toLseSymbol(request.ticker);
-    const url = buildCandlesUrl(this.#baseUrl, request, providerSymbol);
+    const resolved = toSiftingSymbol(request.ticker);
+    if (resolved === undefined) throw new ProviderNotFoundError();
+    const initialUrl = buildBarsUrl(this.#baseUrl, request, resolved);
     const deadline = Date.now() + this.#timeoutMs;
+    const payloads: SiftingBars[] = [];
+    let totalBytes = 0;
+    let url = initialUrl;
+
+    for (let page = 1; page <= 3; page += 1) {
+      const remainingBytes = this.#maxResponseBytes - totalBytes;
+      if (remainingBytes < 1) {
+        throw new ProviderSchemaError(
+          "Provider response exceeded the configured byte limit.",
+        );
+      }
+      const result = await this.#fetchPage(
+        url,
+        context,
+        deadline,
+        remainingBytes,
+      );
+      totalBytes += result.byteLength;
+      payloads.push(result.payload);
+      const cursor = result.payload.meta.next_cursor;
+      if (cursor === undefined) {
+        return normalizePayloads(payloads, request.ticker, resolved);
+      }
+      if (page === 3) {
+        throw new ProviderSchemaError(
+          "Provider pagination exceeded the configured page limit.",
+        );
+      }
+      url = new URL(initialUrl);
+      url.searchParams.delete("start");
+      url.searchParams.set("cursor", cursor);
+    }
+    throw new ProviderSchemaError(
+      "Provider pagination did not produce a complete response.",
+    );
+  }
+
+  async #fetchPage(
+    url: URL,
+    context: ProviderRequestContext,
+    deadline: number,
+    maximumBytes: number,
+  ): Promise<Readonly<{ payload: SiftingBars; byteLength: number }>> {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= this.#maxAttempts; attempt += 1) {
@@ -190,7 +191,11 @@ export class LseProvider implements MarketDataProvider {
       );
       try {
         const response = await this.#fetch(url, {
-          headers: { "x-api-key": this.#apiKey, accept: "application/json" },
+          headers: {
+            "x-api-key": this.#apiKey,
+            accept: "application/json",
+            "accept-encoding": "gzip",
+          },
           signal: controller.signal,
         });
         if (response.status === 401 || response.status === 403) {
@@ -200,12 +205,7 @@ export class LseProvider implements MarketDataProvider {
           });
         }
         if (response.status === 404) throw new ProviderNotFoundError();
-        if (response.status === 422) {
-          throw new ProviderSchemaError(
-            "The provider rejected the candle request.",
-            { providerStatus: response.status, attempt },
-          );
-        }
+        if (response.status === 422) throw new InsufficientDataError();
         if (response.status === 429) {
           const retryAfterSeconds = parseRetryAfter(
             response.headers.get("retry-after"),
@@ -225,16 +225,14 @@ export class LseProvider implements MarketDataProvider {
             continue;
           throw lastError;
         }
-        if (!response.ok)
+        if (!response.ok) {
           throw new ProviderSchemaError(
             "Unexpected provider response status.",
-            {
-              providerStatus: response.status,
-              attempt,
-            },
+            { providerStatus: response.status, attempt },
           );
+        }
 
-        const bytes = await readBoundedBody(response, this.#maxResponseBytes);
+        const bytes = await readBoundedBody(response, maximumBytes);
         let payload: unknown;
         try {
           payload = JSON.parse(new TextDecoder().decode(bytes));
@@ -243,13 +241,13 @@ export class LseProvider implements MarketDataProvider {
             cause: error,
           });
         }
-        const parsed = lseCandlesSchema.safeParse(payload);
-        if (!parsed.success)
+        const parsed = siftingBarsSchema.safeParse(payload);
+        if (!parsed.success) {
           throw new ProviderSchemaError(
-            "Provider returned an invalid candle payload.",
+            "Provider returned an invalid bars payload.",
           );
-        if (parsed.data.length === 0) throw new InsufficientDataError();
-        return normalizeRows(parsed.data, request.ticker, providerSymbol);
+        }
+        return { payload: parsed.data, byteLength: bytes.byteLength };
       } catch (error) {
         if (
           error instanceof ProviderError ||
@@ -259,17 +257,19 @@ export class LseProvider implements MarketDataProvider {
         ) {
           throw error;
         }
-        if (context.signal.aborted)
+        if (context.signal.aborted) {
           throw new ProviderTimeoutError("Provider request was aborted.", {
             cause: error,
             attempt,
           });
+        }
         if (controller.signal.aborted || Date.now() >= deadline) {
           throw new ProviderTimeoutError(undefined, { cause: error, attempt });
         }
         lastError = error;
-        if (attempt >= this.#maxAttempts)
+        if (attempt >= this.#maxAttempts) {
           throw new ProviderError(undefined, { cause: error, attempt });
+        }
       } finally {
         clearTimeout(timer);
         context.signal.removeEventListener("abort", onAbort);

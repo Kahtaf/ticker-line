@@ -12,8 +12,8 @@ import type { MarketSeriesRequest } from "../../src/domain/market-series";
 import {
   LseProvider,
   parseLseUtcTimestamp,
-  readBoundedBody,
 } from "../../src/providers/lse/adapter";
+import { readBoundedBody } from "../../src/providers/http";
 import aapl from "../fixtures/provider/lse-aapl.json";
 import btc from "../fixtures/provider/lse-btc.json";
 import empty from "../fixtures/provider/lse-empty.json";

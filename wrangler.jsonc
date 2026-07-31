@@ -38,11 +38,12 @@
   ],
   "vars": {
     "APP_ENV": "production",
-    "PROVIDER_ID": "lse",
+    "PROVIDER_ID": "sifting-lse",
     "PROVIDER_VERSION": "v1",
-    "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
+    "SIFTING_BASE_URL": "https://api.sifting.io",
+    "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
     "CACHE_POLICY_VERSION": "v1",
-    "NORMALIZATION_VERSION": "v3",
+    "NORMALIZATION_VERSION": "v4",
     "RENDERER_VERSION": "v4",
   },
   "observability": {
@@ -88,11 +89,12 @@
       ],
       "vars": {
         "APP_ENV": "staging",
-        "PROVIDER_ID": "lse",
+        "PROVIDER_ID": "sifting-lse",
         "PROVIDER_VERSION": "v1",
-        "PROVIDER_BASE_URL": "https://api.londonstrategicedge.com/vault",
+        "SIFTING_BASE_URL": "https://api.sifting.io",
+        "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
         "CACHE_POLICY_VERSION": "v1",
-        "NORMALIZATION_VERSION": "v3",
+        "NORMALIZATION_VERSION": "v4",
         "RENDERER_VERSION": "v4",
       },
       "observability": {

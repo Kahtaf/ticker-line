@@ -16,8 +16,11 @@ flowchart LR
     L --> V["Validate and canonicalize"]
     V --> R["Cache API: rendered response"]
     R -->|miss| D["Workers KV: normalized series"]
-    D -->|miss or refresh| P["London Strategic Edge adapter"]
-    P --> LSE["LSE candles API"]
+    D -->|miss or refresh| F["Ordered provider fallback"]
+    F --> SIO["Sifting adapter"]
+    F --> LSE["LSE adapter"]
+    SIO --> SA["Sifting historical bars API"]
+    LSE --> LA["LSE candles API"]
     D --> S["Deterministic SVG renderer"]
     S --> R
     W --> O["Workers logs and traces"]
@@ -49,7 +52,10 @@ src/
   cache/                    Cache keys, KV records, and response artifacts
   domain/                   Public request, timeframe, series, and error types
   http/                     Query parsing, headers, rate limiting, error responses
+  providers/sifting/        Sifting schema, symbol catalog mapping, and adapter
   providers/lse/            LSE schema, symbol mapping, and adapter
+  providers/fallback.ts     Ordered provider fallback and diagnostics
+  providers/http.ts         Shared bounded-response and Retry-After helpers
   render/                   Sampling, geometry, styles, and SVG serialization
   services/series.ts        Data-cache state machine and one-day selection
   status/                   Passive public service-status state
@@ -118,6 +124,39 @@ type MarketSeries = {
 ```
 
 Rendering and caching consume this domain type and never consume raw provider payloads.
+
+## Provider order and fallback
+
+`FallbackProvider` calls Sifting first and LSE second. It proceeds to LSE after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
+
+Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID `sifting-lse`, so a result is reused regardless of which member fulfilled that refresh.
+
+## Sifting adapter
+
+`src/providers/sifting/adapter.ts` uses Sifting's market-specific historical bars endpoints with `X-API-Key` authentication and gzip negotiation. `src/providers/sifting/symbols.ts` owns translation from public symbols to the documented provider form:
+
+- US securities retain their ticker, such as `AAPL` and `SPY`.
+- Slash or legacy hyphen crypto pairs map to concatenated symbols, such as `BTC/USD` to `BTCUSD`.
+- Commodities map to concatenated symbols, such as `XAU/USD` to `XAUUSD`.
+- FX pairs map to concatenated symbols, such as `USD/CAD` to `USDCAD`.
+- Symbols outside Sifting's documented catalogs, including `NAS100/USD`, fail locally and move directly to LSE.
+
+The non-equity catalogs are explicit because pair shape alone is ambiguous: `SOL/USD` is crypto, not forex. US security symbols are attempted against the stocks endpoint and fall through when Sifting does not cover them.
+
+Sifting accepts `15m`, `1h`, and `1d` for the corresponding public intervals. Its crypto, FX, and commodities endpoints reject `1w`, so five-year requests use daily bars and the normal deterministic sampler reduces them to the public target. Stocks retain weekly requests. Pages retain the original end, interval, and limit while replacing start with Sifting's opaque cursor.
+
+Sifting boundaries:
+
+- One 10-second overall deadline across retries and pagination.
+- At most two attempts per page and at most three pages.
+- At most 5,000 normalized points and 2 MiB across all pages.
+- `401` and `403` become provider authentication/entitlement failures.
+- `404` becomes provider not-found.
+- `422` becomes insufficient data so LSE may still fulfill the range.
+- `429` preserves `Retry-After` when parseable.
+- Other `4xx` responses become schema/request failures.
+- `5xx` and network failures receive at most one retry while deadline remains.
+- Epoch-millisecond timestamps and finite closes are validated with Zod, deduplicated, and sorted.
 
 ## London Strategic Edge adapter
 
@@ -267,7 +306,7 @@ API responses set:
 
 Preflight allows `GET`, `HEAD`, and `OPTIONS` and caches for one day. Method responses include `Allow` where applicable.
 
-Provider credentials are read from the `LSE_API_KEY` Worker secret. `.dev.vars` is gitignored; `.dev.vars.example` contains only a placeholder. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
+Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.dev.vars` is gitignored; `.dev.vars.example` contains placeholders only. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
 
 ## Observability
 
@@ -310,7 +349,7 @@ Only actual provider refresh attempts update the record:
 - provider authentication failures record `unavailable`;
 - ticker-not-found and insufficient-data outcomes do not change global state.
 
-Writes run through `waitUntil` and cannot turn a chart request into a failure. Fresh market-data and rendered-response cache hits do not write status. Reading `/status` performs one KV read, never calls LSE, and returns a short-cache response. This makes the signal passive and eventually consistent rather than an uptime SLA. The response deliberately omits provider identity, quota, raw errors, upstream request IDs, and other diagnostics.
+Writes run through `waitUntil` and cannot turn a chart request into a failure. Fresh market-data and rendered-response cache hits do not write status. Reading `/status` performs one KV read, never calls a provider, and returns a short-cache response. This makes the signal passive and eventually consistent rather than an uptime SLA. The response deliberately omits provider identity, quota, raw errors, upstream request IDs, and other diagnostics.
 
 ## Website
 
@@ -354,7 +393,7 @@ Changing behavior without updating the appropriate version can leave incompatibl
 
 ## Local development
 
-Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and an LSE API key for live provider requests.
+Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and Sifting plus LSE API keys for the configured live provider chain.
 
 ```sh
 npm ci
@@ -368,7 +407,7 @@ Never commit `.dev.vars` or print its contents. Local bindings use Wrangler's lo
 
 ## Verification strategy
 
-The default suite does not call the live provider.
+The default suite does not call live providers.
 
 ### Unit and Worker tests
 
@@ -412,7 +451,7 @@ npm run deploy:staging
 npm run deploy
 ```
 
-Both deployment scripts build the Astro site and upload `LSE_API_KEY` from the gitignored `.dev.vars` file without printing it. A deployed smoke test should verify:
+Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.dev.vars` file without printing them. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
 - `/status` returns `200`, the documented coarse schema, and no provider-specific details;
@@ -464,3 +503,6 @@ Future capabilities should attach to existing boundaries:
 - [Astro on Cloudflare](https://docs.astro.build/en/guides/deploy/cloudflare/)
 - [London Strategic Edge API documentation](https://londonstrategicedge.com/api-documentation/)
 - [LSE provider evaluation](./lse-provider-spike.md)
+- [Sifting API documentation](https://sifting.io/docs)
+- [Sifting symbol catalog](https://sifting.io/symbols)
+- [Sifting provider evaluation](./sifting-provider-spike.md)

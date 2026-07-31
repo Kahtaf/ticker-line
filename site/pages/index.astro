@@ -36,7 +36,7 @@ const samples = [
 const presets = samples.map(({ ticker }) => ({ label: ticker, ticker }))
 
 const parameters = [
-  ['ticker', 'required', '—', 'Use a supported London Strategic Edge symbol.'],
+  ['ticker', 'required', '—', 'Use a supported market symbol.'],
   ['timeframe', 'optional', '1m', '1d, 7d, 1m, 3m, 1y, or 5y.'],
   ['theme', 'optional', 'light', 'light or dark.'],
   ['fill', 'optional', 'false', 'Fill gains and losses to the chart reference line.'],
@@ -134,7 +134,7 @@ const structuredData = {
 
       <section id="try" aria-labelledby="try-title">
         <h2 id="try-title">Try it yourself</h2>
-        <p class="section-copy">Choose an example or enter a symbol. The ticker must be supported by <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a>.</p>
+        <p class="section-copy">Choose an example or enter a supported market symbol.</p>
 
         <form class="request-builder" data-request-builder novalidate>
           <div class="preset-row" aria-label="Examples">
@@ -211,7 +211,7 @@ const structuredData = {
             <thead><tr><th>Name</th><th>Default</th><th>Description</th></tr></thead>
             <tbody>
               {parameters.map(([name, requirement, fallback, detail]) => (
-                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported <a href="https://londonstrategicedge.com/data/#overview">London Strategic Edge</a> symbol.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
+                <tr><td><code>{name}</code><small>{requirement}</small></td><td><code>{fallback}</code></td><td>{name === 'ticker' ? <>Use a supported market symbol.</> : name === 'timeframe' ? <><code>1d</code>, <code>7d</code>, <code>1m</code>, <code>3m</code>, <code>1y</code>, or <code>5y</code>.</> : name === 'theme' ? <><code>light</code> or <code>dark</code>.</> : name === 'format' ? <><code>svg</code> for embeds; <code>json</code> for quote data and semantic errors.</> : detail}</td></tr>
               ))}
             </tbody>
           </table>

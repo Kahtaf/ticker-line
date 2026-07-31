@@ -135,13 +135,15 @@ describe("one-day series selection", () => {
     };
     const config: AppConfig = {
       environment: "staging",
-      providerId: "lse",
+      providerId: "sifting-lse",
       providerVersion: "v1",
-      providerBaseUrl: "https://example.test",
+      siftingBaseUrl: "https://sifting.example.test",
+      lseBaseUrl: "https://lse.example.test",
       cachePolicyVersion: "v1",
       normalizationVersion: "v2",
       rendererVersion: "v4",
-      providerApiKey: "test-only",
+      siftingApiKey: "sifting-test-only",
+      lseApiKey: "lse-test-only",
     };
     const recordMarketData = vi.fn(async () => {});
     const pending: Promise<unknown>[] = [];

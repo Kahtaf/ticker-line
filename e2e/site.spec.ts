@@ -274,21 +274,14 @@ test("accepts slash tickers and wraps complete URLs on mobile", async ({
   ).toBe(true);
 });
 
-test("links ticker guidance to the LSE catalog", async ({ page }) => {
+test("keeps ticker guidance provider-neutral", async ({ page }) => {
   await page.goto("/");
-  const guidanceLinks = page.getByRole("link", {
-    name: "London Strategic Edge",
-  });
-  await expect(guidanceLinks).toHaveCount(2);
-  for (const link of await guidanceLinks.all()) {
-    await expect(link).toHaveAttribute(
-      "href",
-      "https://londonstrategicedge.com/data/#overview",
-    );
-  }
+  await expect(page.locator("#try .section-copy")).toHaveText(
+    "Choose an example or enter a supported market symbol.",
+  );
   await expect(
     page.locator("#request tbody tr").first().locator("td").nth(2),
-  ).toHaveText("Use a supported London Strategic Edge symbol.");
+  ).toHaveText("Use a supported market symbol.");
 });
 
 test("styles inline code and omits section dividers", async ({ page }) => {

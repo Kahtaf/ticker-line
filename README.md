@@ -51,7 +51,7 @@ These are the same examples available in the live request builder.
 | Gold       | `XAU/USD`    | ![XAU/USD sparkline](https://ticker-line.com/v1/sparkline?ticker=XAU%2FUSD&timeframe=1m)       |
 | USD / CAD  | `USD/CAD`    | ![USD/CAD sparkline](https://ticker-line.com/v1/sparkline?ticker=USD%2FCAD&timeframe=1m)       |
 
-Ticker symbols must be supported by [London Strategic Edge](https://londonstrategicedge.com/data/#overview).
+Coverage comes from the configured market-data providers and varies by symbol and market.
 
 ## API
 
@@ -90,7 +90,8 @@ SVG requests remain embeddable when something goes wrong: the API returns a gray
 Requirements:
 
 - Node.js 22.12 or newer
-- An [LSE API key](https://londonstrategicedge.com/data#api)
+- A [Sifting API key](https://sifting.io/register)
+- An [LSE API key](https://londonstrategicedge.com/data#api) for fallback coverage
 - Wrangler authentication for deployment only
 
 Install dependencies and configure the local Worker:
@@ -100,7 +101,7 @@ npm ci
 cp .dev.vars.example .dev.vars
 ```
 
-Add your LSE key to `.dev.vars`, then start the API or documentation site:
+Add both provider keys to `.dev.vars`, then start the API or documentation site:
 
 ```sh
 npm run dev:api
@@ -116,7 +117,7 @@ Useful commands:
 | `npm run test:e2e`    | Browser and accessibility tests                                     |
 | `npm run build`       | Static site build and Worker dry run                                |
 
-The default test suite uses provider fixtures and does not call the live LSE API.
+The default test suite uses provider fixtures and does not call live provider APIs.
 
 ## Architecture
 
@@ -132,7 +133,7 @@ The default test suite uses provider fixtures and does not call the live LSE API
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request. Report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
 
-Market data is provided by [London Strategic Edge](https://londonstrategicedge.com/data/#overview). Data may be delayed or contain errors. ticker-line is not financial advice.
+Market data is sourced through [Sifting](https://sifting.io) with [London Strategic Edge](https://londonstrategicedge.com/data/#overview) as fallback. Data may be delayed or contain errors. ticker-line is not financial advice.
 
 ## License
 
