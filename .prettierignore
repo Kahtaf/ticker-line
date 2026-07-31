@@ -7,3 +7,4 @@ docs/**/*.md
 public/social-card.svg
 worker-configuration.d.ts
 test/golden/
+temp-video/

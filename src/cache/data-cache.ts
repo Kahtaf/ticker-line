@@ -18,7 +18,15 @@ const pointSchema = z
 const seriesSchema = z
   .object({
     resolvedTicker: z.string().min(1),
-    assetType: z.enum(["stock", "crypto", "etf", "index", "forex", "unknown"]),
+    assetType: z.enum([
+      "stock",
+      "crypto",
+      "forex",
+      "commodity",
+      "index",
+      "etf",
+      "unknown",
+    ]),
     currency: z.string().optional(),
     exchange: z.string().optional(),
     timezone: z.string().optional(),

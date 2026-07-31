@@ -12,5 +12,5 @@
   <text x="80" y="384" fill="#111111" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="700" letter-spacing="-4">in one URL.</text>
   <path d="M720 430 785 368l54 41 90-126 108 47 83-80" fill="none" stroke="#176b3a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M720 382h400" stroke="#b8b8b8" stroke-width="2" stroke-dasharray="5 7"/>
-  <text x="80" y="534" fill="#666666" font-family="SFMono-Regular,Consolas,monospace" font-size="22">ticker-line.com/v1/sparkline?ticker=AAPL&amp;timeframe=1m</text>
+  <text x="80" y="534" fill="#666666" font-family="SFMono-Regular,Consolas,monospace" font-size="22">ticker-line.com/v1/sparkline?ticker=AAPL&amp;market=stock&amp;timeframe=1m</text>
 </svg>

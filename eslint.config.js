@@ -11,6 +11,7 @@ export default tseslint.config(
       ".wrangler/**",
       "coverage/**",
       "site/**/*.astro",
+      "temp-video/**",
       "worker-configuration.d.ts",
       "eslint.config.js",
     ],

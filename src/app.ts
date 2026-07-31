@@ -27,7 +27,9 @@ import {
   withoutBody,
 } from "./http/headers";
 import { parseSparklineRequest, requestedOutputMode } from "./http/query";
+import { FallbackProvider } from "./providers/fallback";
 import { LseProvider } from "./providers/lse/adapter";
+import { SiftingProvider } from "./providers/sifting/adapter";
 import {
   createStrongEtag,
   renderSparkline,
@@ -56,9 +58,18 @@ const defaultFactories: AppFactories = {
   now: () => new Date(),
   logger,
   createProvider(_env, config) {
-    return new LseProvider({
-      apiKey: config.providerApiKey,
-      baseUrl: config.providerBaseUrl,
+    return new FallbackProvider({
+      providers: [
+        new SiftingProvider({
+          apiKey: config.siftingApiKey,
+          baseUrl: config.siftingBaseUrl,
+        }),
+        new LseProvider({
+          apiKey: config.lseApiKey,
+          baseUrl: config.lseBaseUrl,
+        }),
+      ],
+      logger,
     });
   },
   createDataCache(env) {
@@ -300,6 +311,7 @@ export function createApp(
         errorCode: semanticError.code,
         durationMs: Date.now() - startedAt,
         ticker: canonicalRequest?.ticker,
+        market: canonicalRequest?.market,
         timeframe: canonicalRequest?.timeframe,
         theme: canonicalRequest?.theme,
         fill: canonicalRequest?.fill,
@@ -342,6 +354,7 @@ export function createApp(
       cache: response.headers.get("X-Cache"),
       durationMs: Date.now() - startedAt,
       ticker: canonicalRequest?.ticker,
+      market: canonicalRequest?.market,
       timeframe: canonicalRequest?.timeframe,
       theme: canonicalRequest?.theme,
       fill: canonicalRequest?.fill,

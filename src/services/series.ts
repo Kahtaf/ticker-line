@@ -57,6 +57,7 @@ function keyParts(
     providerVersion: config.providerVersion,
     normalizationVersion: config.normalizationVersion,
     ticker: request.ticker,
+    market: request.market,
     timeframe: request.timeframe,
     interval: getTimeframePolicy(request.timeframe).interval,
   };
@@ -143,6 +144,7 @@ async function fetchSelectedSeries(
   const requestedRange = getTimeframeRange(request.timeframe, now);
   const range: MarketSeriesRequest = {
     ticker: request.ticker,
+    market: request.market,
     interval,
     start:
       request.timeframe === "1d"
@@ -278,6 +280,7 @@ export async function loadSeries(
           requestId: options.requestId,
           providerId: options.config.providerId,
           ticker: options.request.ticker,
+          market: options.request.market,
           timeframe: options.request.timeframe,
           durationMs: Date.now() - refreshStartedAt,
           ...errorLogFields(error),

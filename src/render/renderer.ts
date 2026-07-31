@@ -1,5 +1,9 @@
 import type { PublicErrorCode } from "../domain/errors";
-import type { MarketPoint, MarketSeries } from "../domain/market-series";
+import type {
+  Market,
+  MarketPoint,
+  MarketSeries,
+} from "../domain/market-series";
 import type { Theme } from "../domain/request";
 import type { Timeframe } from "../domain/timeframe";
 import {
@@ -184,6 +188,7 @@ export function renderErrorSparkline(code: PublicErrorCode): string {
 
 export type SparklineJson = Readonly<{
   ticker: string;
+  market: Market;
   timeframe: Timeframe;
   currency?: string;
   price: number;
@@ -204,7 +209,8 @@ export function renderSparklineJson(
     MarketSeries,
     "currency" | "dataAsOf" | "points" | "referenceClose"
   >,
-  options: Pick<RenderOptions, "ticker" | "timeframe">,
+  options: Pick<RenderOptions, "ticker" | "timeframe"> &
+    Readonly<{ market: Market }>,
   svg: string,
 ): string {
   const latest = series.points.at(-1);
@@ -224,6 +230,7 @@ export function renderSparklineJson(
     change > 0 ? "up" : change < 0 ? "down" : "flat";
   const required = {
     ticker: options.ticker,
+    market: options.market,
     timeframe: options.timeframe,
     price,
     referencePrice,

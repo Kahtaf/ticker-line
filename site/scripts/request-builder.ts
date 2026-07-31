@@ -13,6 +13,7 @@ const TICKER_PATTERN = /^[A-Z0-9./^=_-]{1,32}$/;
 type MarketDirection = "up" | "down" | "flat";
 type RequestState = Readonly<{
   ticker: string;
+  market: "stock" | "crypto" | "forex" | "commodity" | "index";
   timeframe: string;
   theme: "light" | "dark";
   fill: boolean;
@@ -148,6 +149,7 @@ function svgElement(source: string): SVGSVGElement | undefined {
 function requestParams(state: RequestState): URLSearchParams {
   const params = new URLSearchParams({
     ticker: state.ticker,
+    market: state.market,
     timeframe: state.timeframe,
   });
   if (state.theme !== "light") params.set("theme", state.theme);
@@ -188,11 +190,19 @@ function displayJson(value: unknown): string | undefined {
   return JSON.stringify(displayValue, null, 2);
 }
 
-function selectMarketCard(ticker: string, timeframe: string): void {
+function selectMarketCard(
+  ticker: string,
+  market: RequestState["market"],
+  timeframe: string,
+): void {
   for (const card of marketCards) {
     card.setAttribute(
       "aria-pressed",
-      String(timeframe === "1d" && card.dataset.ticker === ticker),
+      String(
+        timeframe === "1d" &&
+          card.dataset.ticker === ticker &&
+          card.dataset.market === market,
+      ),
     );
   }
 }
@@ -204,10 +214,12 @@ async function loadMarketCard(
   attempt = 0,
 ): Promise<void> {
   const ticker = card.dataset.ticker;
-  if (ticker === undefined) return;
+  const market = card.dataset.market;
+  if (ticker === undefined || market === undefined) return;
   card.dataset.marketState = "loading";
   const params = new URLSearchParams({
     ticker,
+    market,
     timeframe: "1d",
     theme,
     fill: "true",
@@ -277,10 +289,11 @@ function loadMarketCards(): void {
 for (const card of marketCards) {
   card.addEventListener("click", () => {
     const ticker = card.dataset.ticker;
-    if (ticker === undefined) return;
+    const market = card.dataset.market;
+    if (ticker === undefined || market === undefined) return;
     document.dispatchEvent(
       new CustomEvent("ticker-line:select-sample", {
-        detail: { ticker, timeframe: "1d" },
+        detail: { ticker, market, timeframe: "1d" },
       }),
     );
   });
@@ -339,6 +352,9 @@ if (form) {
   const timeframeInput = form.querySelector(
     '[name="timeframe"]',
   ) as unknown as HTMLSelectElement | null;
+  const marketInput = form.querySelector(
+    '[name="market"]',
+  ) as unknown as HTMLSelectElement | null;
   const themeInput = form.querySelector(
     '[name="theme"]',
   ) as unknown as HTMLSelectElement | null;
@@ -385,7 +401,14 @@ if (form) {
   };
 
   const update = () => {
-    if (!tickerInput || !timeframeInput || !themeInput || !fillInput) return;
+    if (
+      !tickerInput ||
+      !marketInput ||
+      !timeframeInput ||
+      !themeInput ||
+      !fillInput
+    )
+      return;
     const ticker = tickerInput.value.trim().toUpperCase();
     tickerInput.value = ticker;
 
@@ -400,6 +423,7 @@ if (form) {
 
     const state: RequestState = {
       ticker,
+      market: marketInput.value as RequestState["market"],
       timeframe: timeframeInput.value,
       theme: themeInput.value === "dark" ? "dark" : "light",
       fill: fillInput.value === "true",
@@ -409,7 +433,7 @@ if (form) {
     const nextUrl = new URL(nextPath, PUBLIC_API_ORIGIN).href;
 
     updateSharedExamples(state, nextUrl);
-    selectMarketCard(state.ticker, state.timeframe);
+    selectMarketCard(state.ticker, state.market, state.timeframe);
 
     if (generated) {
       generated.textContent = nextUrl;
@@ -435,16 +459,25 @@ if (form) {
         event.preventDefault();
         if (!tickerInput) return;
         tickerInput.value = link.dataset.tickerPreset ?? "";
+        if (marketInput)
+          marketInput.value = link.dataset.marketPreset ?? "stock";
         update();
         tickerInput.focus();
       });
     });
 
   document.addEventListener("ticker-line:select-sample", (event) => {
-    const detail = (event as CustomEvent<{ ticker: string; timeframe: string }>)
-      .detail;
-    if (!tickerInput || !timeframeInput || detail === undefined) return;
+    const detail = (
+      event as CustomEvent<{
+        ticker: string;
+        market: RequestState["market"];
+        timeframe: string;
+      }>
+    ).detail;
+    if (!tickerInput || !marketInput || !timeframeInput || detail === undefined)
+      return;
     tickerInput.value = detail.ticker;
+    marketInput.value = detail.market;
     timeframeInput.value = detail.timeframe;
     update();
   });

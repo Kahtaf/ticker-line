@@ -12,8 +12,8 @@ import type { MarketSeriesRequest } from "../../src/domain/market-series";
 import {
   LseProvider,
   parseLseUtcTimestamp,
-  readBoundedBody,
 } from "../../src/providers/lse/adapter";
+import { readBoundedBody } from "../../src/providers/http";
 import aapl from "../fixtures/provider/lse-aapl.json";
 import btc from "../fixtures/provider/lse-btc.json";
 import empty from "../fixtures/provider/lse-empty.json";
@@ -21,6 +21,7 @@ import vod from "../fixtures/provider/lse-vod-l.json";
 
 const baseRequest: MarketSeriesRequest = {
   ticker: "AAPL",
+  market: "stock",
   start: new Date("2026-07-01T00:00:00.000Z"),
   end: new Date("2026-07-12T00:00:00.000Z"),
   interval: "1d",
@@ -54,7 +55,7 @@ describe("LseProvider", () => {
     );
     expect(series).toEqual({
       resolvedTicker: "AAPL",
-      assetType: "unknown",
+      assetType: "stock",
       dataAsOf: "2026-07-11T20:00:00.000Z",
       referenceClose: 211.25,
       points: [
@@ -64,47 +65,46 @@ describe("LseProvider", () => {
     });
   });
 
-  it("maps BTC-USD only at the provider boundary and preserves provisional precision", async () => {
+  it("preserves slash symbols and provisional timestamp precision", async () => {
     let requestedUrl: URL | undefined;
     const series = await providerWith(Response.json(btc), (request) => {
       requestedUrl = new URL(request.url);
     }).fetchSeries(
-      { ...baseRequest, ticker: "BTC-USD", interval: "15m" },
+      {
+        ...baseRequest,
+        ticker: "BTC/USD",
+        market: "crypto",
+        interval: "15m",
+      },
       context,
     );
     expect(requestedUrl?.searchParams.get("symbol")).toBe("BTC/USD");
     expect(requestedUrl?.searchParams.get("start")).toBe("2026-07-01");
     expect(requestedUrl?.searchParams.get("end")).toBe("2026-07-12");
     expect(requestedUrl?.pathname).toBe("/vault/candles");
-    expect(series.resolvedTicker).toBe("BTC-USD");
+    expect(series.resolvedTicker).toBe("BTC/USD");
     expect(series.assetType).toBe("crypto");
     expect(series.currency).toBe("USD");
     expect(series.dataAsOf).toBe("2026-07-12T20:30:00.123Z");
   });
 
   it.each([
-    ["ETH-USD", "ETH/USD", "crypto", "USD"],
-    ["SOL-USD", "SOL/USD", "crypto", "USD"],
-    ["NAS100/USD", "NAS100/USD", "index", "USD"],
-    ["XAU/USD", "XAU/USD", "unknown", "USD"],
-    ["USD/CAD", "USD/CAD", "forex", "CAD"],
-    ["EURUSD=X", "EUR/USD", "forex", "USD"],
-    ["^GSPC", "SPX500/USD", "index", "USD"],
-    ["^DJI", "US30/USD", "index", "USD"],
-    ["^IXIC", "NASCOMP/USD", "index", "USD"],
-    ["^RUT", "US2000/USD", "index", "USD"],
+    ["ANY/USD", "crypto", "USD"],
+    ["NAS100/USD", "index", "USD"],
+    ["XAU/USD", "commodity", "USD"],
+    ["USD/CAD", "forex", "CAD"],
   ] as const)(
-    "maps public ticker %s to provider symbol %s",
-    async (ticker, providerSymbol, assetType, currency) => {
+    "forwards typed public symbol %s without a ticker lookup",
+    async (ticker, market, currency) => {
       let symbol: string | null = null;
-      const rows = btc.map((row) => ({ ...row, symbol: providerSymbol }));
+      const rows = btc.map((row) => ({ ...row, symbol: ticker }));
       const series = await providerWith(Response.json(rows), (request) => {
         symbol = new URL(request.url).searchParams.get("symbol");
-      }).fetchSeries({ ...baseRequest, ticker }, context);
+      }).fetchSeries({ ...baseRequest, ticker, market }, context);
 
-      expect(symbol).toBe(providerSymbol);
+      expect(symbol).toBe(ticker);
       expect(series.resolvedTicker).toBe(ticker);
-      expect(series.assetType).toBe(assetType);
+      expect(series.assetType).toBe(market);
       expect(series.currency).toBe(currency);
     },
   );
@@ -113,7 +113,10 @@ describe("LseProvider", () => {
     let symbol: string | null = null;
     await providerWith(Response.json(vod), (request) => {
       symbol = new URL(request.url).searchParams.get("symbol");
-    }).fetchSeries({ ...baseRequest, ticker: "VOD.L" }, context);
+    }).fetchSeries(
+      { ...baseRequest, ticker: "VOD.L", market: "stock" },
+      context,
+    );
     expect(symbol).toBe("VOD.L");
   });
 

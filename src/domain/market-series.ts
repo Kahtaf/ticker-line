@@ -1,7 +1,15 @@
 import type { SourceInterval } from "./timeframe";
 
-export type AssetType =
-  "stock" | "crypto" | "etf" | "index" | "forex" | "unknown";
+export const MARKETS = [
+  "stock",
+  "crypto",
+  "forex",
+  "commodity",
+  "index",
+] as const;
+export type Market = (typeof MARKETS)[number];
+
+export type AssetType = Market | "etf" | "unknown";
 
 export type MarketPoint = Readonly<{
   timestamp: number;
@@ -21,6 +29,7 @@ export type MarketSeries = Readonly<{
 
 export type MarketSeriesRequest = Readonly<{
   ticker: string;
+  market: Market;
   start: Date;
   end: Date;
   interval: SourceInterval;

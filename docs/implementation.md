@@ -16,8 +16,11 @@ flowchart LR
     L --> V["Validate and canonicalize"]
     V --> R["Cache API: rendered response"]
     R -->|miss| D["Workers KV: normalized series"]
-    D -->|miss or refresh| P["London Strategic Edge adapter"]
-    P --> LSE["LSE candles API"]
+    D -->|miss or refresh| F["Ordered provider fallback"]
+    F --> SIO["Sifting adapter"]
+    F --> LSE["LSE adapter"]
+    SIO --> SA["Sifting historical bars API"]
+    LSE --> LA["LSE candles API"]
     D --> S["Deterministic SVG renderer"]
     S --> R
     W --> O["Workers logs and traces"]
@@ -49,7 +52,10 @@ src/
   cache/                    Cache keys, KV records, and response artifacts
   domain/                   Public request, timeframe, series, and error types
   http/                     Query parsing, headers, rate limiting, error responses
+  providers/sifting/        Sifting schema, symbol catalog mapping, and adapter
   providers/lse/            LSE schema, symbol mapping, and adapter
+  providers/fallback.ts     Ordered provider fallback and diagnostics
+  providers/http.ts         Shared bounded-response and Retry-After helpers
   render/                   Sampling, geometry, styles, and SVG serialization
   services/series.ts        Data-cache state machine and one-day selection
   status/                   Passive public service-status state
@@ -93,9 +99,10 @@ docs/                       Product, implementation, and provider references
 - Maximum URL length: 2,048 characters.
 - Maximum ticker length: 32 characters.
 - Accepted ticker characters: letters, numbers, `.`, `/`, `^`, `=`, `_`, and `-`.
-- Accepted parameters: `ticker`, `timeframe`, `theme`, `fill`, and `format`.
+- Accepted parameters: `ticker`, `market`, `timeframe`, `theme`, `fill`, and `format`.
 - Unknown or duplicated parameters fail with `INVALID_REQUEST`.
 - Tickers are trimmed and uppercased.
+- `market` is required and must be `stock`, `crypto`, `forex`, `commodity`, or `index`.
 - Defaults are `timeframe=1m`, `theme=light`, `fill=false`, and `format=svg`.
 
 Canonical serialization uses a fixed field order. Response cache keys use the parsed values, not the original query string, so casing, parameter order, and omitted defaults do not create duplicate artifacts.
@@ -107,7 +114,7 @@ Provider adapters return a normalized `MarketSeries`:
 ```ts
 type MarketSeries = {
   resolvedTicker: string;
-  assetType: "stock" | "crypto" | "etf" | "index" | "forex" | "unknown";
+  assetType: "stock" | "crypto" | "forex" | "commodity" | "index" | "etf" | "unknown";
   currency?: string;
   exchange?: string;
   timezone?: string;
@@ -119,9 +126,44 @@ type MarketSeries = {
 
 Rendering and caching consume this domain type and never consume raw provider payloads.
 
+## Provider order and fallback
+
+`FallbackProvider` calls Sifting first and LSE second. It proceeds to LSE after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
+
+Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID `sifting-lse`, so a result is reused regardless of which member fulfilled that refresh.
+
+The public request supplies `market`; routing never consults a ticker allowlist or ticker-specific alias table. Sifting supports `stock`, `crypto`, `forex`, and `commodity`. An `index` request skips Sifting locally with a provider-not-found transition and proceeds directly to LSE.
+
+## Sifting adapter
+
+`src/providers/sifting/adapter.ts` uses Sifting's market-specific historical bars endpoints with `X-API-Key` authentication and gzip negotiation. `src/providers/sifting/symbols.ts` maps the required public market to the documented endpoint and performs format-only translation:
+
+- `market=stock` selects `/v1/hist/stocks` and preserves the ticker.
+- `market=crypto` selects `/v1/hist/crypto` and removes slash or hyphen separators.
+- `market=forex` selects `/v1/hist/forex` and removes slash or hyphen separators.
+- `market=commodity` selects `/v1/hist/commodities` and removes slash or hyphen separators.
+- `market=index` is unsupported by Sifting and moves directly to LSE.
+
+No specific security, crypto, forex, commodity, or index symbol is embedded in the routing code. Sifting decides whether the typed symbol exists; a provider-domain failure may proceed to LSE.
+
+Sifting accepts `15m`, `1h`, and `1d` for the corresponding public intervals. Its crypto, FX, and commodities endpoints reject `1w`, so five-year requests use daily bars and the normal deterministic sampler reduces them to the public target. Stocks retain weekly requests. Pages retain the original end, interval, and limit while replacing start with Sifting's opaque cursor.
+
+Sifting boundaries:
+
+- One 10-second overall deadline across retries and pagination.
+- At most two attempts per page and at most three pages.
+- At most 5,000 normalized points and 2 MiB across all pages.
+- `401` and `403` become provider authentication/entitlement failures.
+- `404` becomes provider not-found.
+- `422` becomes insufficient data so LSE may still fulfill the range.
+- `429` preserves `Retry-After` when parseable.
+- Other `4xx` responses become schema/request failures.
+- `5xx` and network failures receive at most one retry while deadline remains.
+- Epoch-millisecond timestamps and finite closes are validated with Zod, deduplicated, and sorted.
+
 ## London Strategic Edge adapter
 
-`src/providers/lse/adapter.ts` calls the LSE candles endpoint with `x-api-key` authentication. It sends the mapped symbol, source interval, UTC start/end dates, ascending order, and a 5,000-row limit.
+`src/providers/lse/adapter.ts` calls the LSE candles endpoint with `x-api-key` authentication. It sends the public ticker unchanged, along with the source interval, UTC start/end dates, ascending order, and a 5,000-row limit. The required market supplies normalized asset metadata without a ticker lookup.
 
 Provider boundaries:
 
@@ -138,7 +180,7 @@ Provider boundaries:
 - Duplicate timestamps keep the last valid row; points are sorted ascending.
 - Empty normalized output becomes `INSUFFICIENT_DATA`.
 
-Aliases in `src/providers/lse/symbols.ts` translate selected public symbols to LSE syntax and supply known asset type/currency metadata. Slash-form public symbols work directly. The alias layer is intentionally small and does not pretend to be a general symbol-resolution service.
+`src/providers/lse/symbols.ts` contains only generic metadata helpers. It has no ticker aliases or symbol catalog.
 
 ## Timeframes and one-day selection
 
@@ -165,7 +207,7 @@ One-day requests widen the provider lookback to eight days so reference and visi
 - the provider request range and source interval;
 - normalized metadata, reference close, and points.
 
-Keys contain the cache-policy, provider, provider-version, normalization-version, ticker, timeframe, and interval. Schema-invalid values are treated as misses and generate a warning rather than breaking a request.
+Keys contain the cache-policy, provider, provider-version, normalization-version, ticker, market, timeframe, and interval. Schema-invalid values are treated as misses and generate a warning rather than breaking a request.
 
 Freshness policy:
 
@@ -193,7 +235,7 @@ Workers KV does not provide global single-flight coordination. The cache reduces
 
 ## Rendered response cache
 
-`ResponseArtifactCache` uses `caches.default`. Its internal URL key includes renderer version, normalization version, ticker, timeframe, theme, fill, and format.
+`ResponseArtifactCache` uses `caches.default`. Its internal URL key includes renderer version, normalization version, ticker, market, timeframe, theme, fill, and format.
 
 Only stable response headers and the body are cached. Request IDs are attached after cache retrieval and are never stored. Artifacts are logically bounded by the underlying data's `freshUntil`; an expired artifact is deleted and treated as a miss.
 
@@ -267,7 +309,7 @@ API responses set:
 
 Preflight allows `GET`, `HEAD`, and `OPTIONS` and caches for one day. Method responses include `Allow` where applicable.
 
-Provider credentials are read from the `LSE_API_KEY` Worker secret. `.dev.vars` is gitignored; `.dev.vars.example` contains only a placeholder. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
+Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.dev.vars` is gitignored; `.dev.vars.example` contains placeholders only. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
 
 ## Observability
 
@@ -310,7 +352,7 @@ Only actual provider refresh attempts update the record:
 - provider authentication failures record `unavailable`;
 - ticker-not-found and insufficient-data outcomes do not change global state.
 
-Writes run through `waitUntil` and cannot turn a chart request into a failure. Fresh market-data and rendered-response cache hits do not write status. Reading `/status` performs one KV read, never calls LSE, and returns a short-cache response. This makes the signal passive and eventually consistent rather than an uptime SLA. The response deliberately omits provider identity, quota, raw errors, upstream request IDs, and other diagnostics.
+Writes run through `waitUntil` and cannot turn a chart request into a failure. Fresh market-data and rendered-response cache hits do not write status. Reading `/status` performs one KV read, never calls a provider, and returns a short-cache response. This makes the signal passive and eventually consistent rather than an uptime SLA. The response deliberately omits provider identity, quota, raw errors, upstream request IDs, and other diagnostics.
 
 ## Website
 
@@ -321,7 +363,7 @@ The core documentation is server-rendered and useful without JavaScript. `site/s
 - theme persistence in local storage;
 - a service-status link whose color and label reflect `/status`;
 - copy buttons;
-- ticker presets and market cards;
+- typed ticker presets and market cards that update both ticker and market;
 - one canonical request state shared by the hero URL, builder, preview, HTML and Markdown examples, copy targets, and JSON response;
 - debounced response and preview updates, with JSON loaded before the matching SVG preview to avoid racing cold market-data requests;
 - live JSON-backed market-card data.
@@ -354,7 +396,7 @@ Changing behavior without updating the appropriate version can leave incompatibl
 
 ## Local development
 
-Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and an LSE API key for live provider requests.
+Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and Sifting plus LSE API keys for the configured live provider chain.
 
 ```sh
 npm ci
@@ -368,7 +410,7 @@ Never commit `.dev.vars` or print its contents. Local bindings use Wrangler's lo
 
 ## Verification strategy
 
-The default suite does not call the live provider.
+The default suite does not call live providers.
 
 ### Unit and Worker tests
 
@@ -412,7 +454,7 @@ npm run deploy:staging
 npm run deploy
 ```
 
-Both deployment scripts build the Astro site and upload `LSE_API_KEY` from the gitignored `.dev.vars` file without printing it. A deployed smoke test should verify:
+Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.dev.vars` file without printing them. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
 - `/status` returns `200`, the documented coarse schema, and no provider-specific details;
@@ -462,5 +504,8 @@ Future capabilities should attach to existing boundaries:
 - [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/)
 - [Hono on Cloudflare Workers](https://hono.dev/docs/getting-started/cloudflare-workers)
 - [Astro on Cloudflare](https://docs.astro.build/en/guides/deploy/cloudflare/)
+- [Sifting API documentation](https://sifting.io/docs)
+- [Sifting symbol catalog](https://sifting.io/symbols)
+- [Sifting provider evaluation](./sifting-provider-spike.md)
 - [London Strategic Edge API documentation](https://londonstrategicedge.com/api-documentation/)
 - [LSE provider evaluation](./lse-provider-spike.md)
