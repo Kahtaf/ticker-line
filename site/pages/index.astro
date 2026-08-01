@@ -95,6 +95,7 @@ const structuredData = {
       <a href="#response">Response</a>
       <a href="#errors">Errors</a>
       <a href="#freshness">Freshness</a>
+      <a href="#data-providers">Data Providers</a>
     </aside>
 
     <article class="docs-content">
@@ -257,6 +258,11 @@ X-Error-Status: 404</code></pre>
         <h2 id="freshness-title">Freshness</h2>
         <p>Cache duration depends on timeframe, asset type, and market session. Freshness ranges from 25 minutes for one-day charts to five days for five-year charts. Inspect <code>X-Data-As-Of</code> or JSON <code>dataAsOf</code> for the source timestamp.</p>
         <p>During a provider outage, a recent cached chart may be served within a bounded stale window. No real-time guarantee is implied.</p>
+      </section>
+
+      <section id="data-providers" aria-labelledby="data-providers-title">
+        <h2 id="data-providers-title">Data Providers</h2>
+        <p>Market data is sourced from <a href="https://sifting.io" target="_blank" rel="noopener noreferrer">Sifting</a>, with <a href="https://londonstrategicedge.com/data/#overview" target="_blank" rel="noopener noreferrer">London Strategic Edge</a> providing secondary fallback coverage.</p>
       </section>
 
       <section id="terms" aria-labelledby="terms-title">

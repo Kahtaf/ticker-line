@@ -82,6 +82,16 @@ test("renders indexable documentation and a live product example", async ({
   await expect(page.getByRole("heading", { name: "Request" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Response" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Data Providers" }),
+  ).toBeVisible();
+  const dataProviders = page.locator("#data-providers");
+  await expect(
+    dataProviders.getByRole("link", { name: "Sifting" }),
+  ).toHaveAttribute("href", "https://sifting.io");
+  await expect(
+    dataProviders.getByRole("link", { name: "London Strategic Edge" }),
+  ).toHaveAttribute("href", "https://londonstrategicedge.com/data/#overview");
   await expect(page.getByText("format=json", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy URL" })).toHaveCount(0);
   await expect(page.locator("#response .section-copy").first()).toHaveText(
