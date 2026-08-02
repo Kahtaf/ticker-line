@@ -87,7 +87,7 @@ test("renders indexable documentation and a live product example", async ({
   ).toBeVisible();
   const dataProviders = page.locator("#data-providers");
   await expect(
-    dataProviders.getByRole("link", { name: "Sifting" }),
+    dataProviders.getByRole("link", { name: "SiftingIO" }),
   ).toHaveAttribute("href", "https://sifting.io");
   await expect(
     dataProviders.getByRole("link", { name: "London Strategic Edge" }),

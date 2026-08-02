@@ -92,7 +92,7 @@ SVG requests remain embeddable when something goes wrong: the API returns a gray
 Requirements:
 
 - Node.js 22.12 or newer
-- A [Sifting API key](https://sifting.io/register) for the primary provider
+- A [SiftingIO API key](https://sifting.io/register) for the primary provider
 - A [London Strategic Edge API key](https://londonstrategicedge.com/data#api) for secondary fallback coverage
 - Wrangler authentication for deployment only
 
@@ -135,7 +135,7 @@ The default test suite uses provider fixtures and does not call live provider AP
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request. Report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
 
-Market data is sourced through [Sifting](https://sifting.io) with [London Strategic Edge](https://londonstrategicedge.com/data/#overview) as fallback. Data may be delayed or contain errors. ticker-line is not financial advice.
+Market data is sourced through [SiftingIO](https://sifting.io) with [London Strategic Edge](https://londonstrategicedge.com/data/#overview) as fallback. Data may be delayed or contain errors. ticker-line is not financial advice.
 
 ## License
 
