@@ -777,6 +777,45 @@ td small {
   font-size: 0.7rem;
 }
 
+.faq-list {
+  margin-top: 18px;
+  border-top: 1px solid var(--border-100);
+}
+.faq-list details {
+  border-bottom: 1px solid var(--border-100);
+  padding-block: 2px;
+}
+.faq-list summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 28px 14px 0;
+  font-size: 0.92rem;
+  font-weight: 520;
+  line-height: 1.45;
+  position: relative;
+}
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+.faq-list summary::after {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  color: var(--foreground-600);
+  content: "+";
+  font-size: 1.15rem;
+  font-weight: 400;
+  transform: translateY(-53%);
+}
+.faq-list details[open] summary::after {
+  content: "–";
+}
+.faq-list p {
+  max-width: 66ch;
+  margin: -2px 28px 16px 0;
+  color: var(--foreground-600);
+}
+
 .site-footer {
   display: flex;
   align-items: start;

@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 
 const description =
-  'Embed sparklines of stock, crypto, indices and more in HTML, markdown, and anywhere else images work.'
+  'Embed live stock, crypto, forex, commodity, and index sparklines as cacheable SVGs in HTML, Markdown, dashboards, and anywhere images work.'
 
 const directUrl = '/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m'
 const directAbsoluteUrl = `https://ticker-line.com${directUrl}`
@@ -54,18 +54,59 @@ const errors = [
   ['503', 'SERVICE_UNAVAILABLE'],
 ]
 
+const faqs = [
+  {
+    question: 'Is Ticker Line free to use?',
+    answer:
+      'Yes. Ticker Line is free to call without an API key. Requests are rate-limited per IP under the fair-use terms, so cache responses and avoid needless polling.',
+  },
+  {
+    question: 'Which markets does Ticker Line support?',
+    answer:
+      'Use the required market parameter to request stock, crypto, forex, commodity, or index data. Symbols must be supported by the configured market-data providers.',
+  },
+  {
+    question: 'How fresh is the market data?',
+    answer:
+      'Freshness depends on the timeframe, asset type, and market session. One-day charts are normally fresh for 25 minutes; five-year charts can be fresh for up to five days. Inspect X-Data-As-Of or dataAsOf for the source timestamp.',
+  },
+  {
+    question: 'Can I use a sparkline in Markdown or a GitHub README?',
+    answer:
+      'Yes. Use the sparkline URL as an image source in HTML or Markdown. The default SVG response is designed to remain embeddable.',
+  },
+  {
+    question: 'How do I get quote data as JSON?',
+    answer:
+      'Add format=json to the sparkline URL. The JSON response includes quote metrics, the data timestamp, and the rendered SVG.',
+  },
+]
+
 const structuredData = {
   '@context': 'https://schema.org',
-  '@type': 'WebAPI',
-  name: 'Ticker Line',
-  description,
-  documentation: 'https://ticker-line.com/',
-  provider: { '@type': 'Organization', name: 'Ticker Line' },
-  termsOfService: 'https://ticker-line.com/#terms',
+  '@graph': [
+    {
+      '@type': 'WebAPI',
+      name: 'Ticker Line',
+      description,
+      url: 'https://ticker-line.com/',
+      documentation: 'https://ticker-line.com/',
+      provider: { '@type': 'Organization', name: 'Ticker Line' },
+      termsOfService: 'https://ticker-line.com/#terms',
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(({ question, answer }) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer },
+      })),
+    },
+  ],
 }
 ---
 
-<BaseLayout title="Ticker Line — Market sparklines through a URL" description={description}>
+<BaseLayout title="Stock, Crypto & Index Sparkline SVG API | Ticker Line" description={description}>
   <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
   <header class="site-header">
@@ -96,6 +137,7 @@ const structuredData = {
       <a href="#errors">Errors</a>
       <a href="#freshness">Freshness</a>
       <a href="#data-providers">Data Providers</a>
+      <a href="#faq">FAQ</a>
     </aside>
 
     <article class="docs-content">
@@ -263,6 +305,18 @@ X-Error-Status: 404</code></pre>
       <section id="data-providers" aria-labelledby="data-providers-title">
         <h2 id="data-providers-title">Data Providers</h2>
         <p>Market data is sourced from <a href="https://sifting.io" target="_blank" rel="noopener noreferrer">SiftingIO</a>, with <a href="https://londonstrategicedge.com/data/#overview" target="_blank" rel="noopener noreferrer">London Strategic Edge</a> providing secondary fallback coverage.</p>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">FAQ</h2>
+        <div class="faq-list">
+          {faqs.map(({ question, answer }) => (
+            <details>
+              <summary>{question}</summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <section id="terms" aria-labelledby="terms-title">

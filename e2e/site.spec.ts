@@ -56,7 +56,9 @@ test("renders indexable documentation and a live product example", async ({
 }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle(/Ticker Line/);
+  await expect(page).toHaveTitle(
+    "Stock, Crypto & Index Sparkline SVG API | Ticker Line",
+  );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Market sparklines through a URL",
   );
@@ -107,6 +109,18 @@ test("renders indexable documentation and a live product example", async ({
   await expect(page.locator("#terms")).toContainText(
     "Fair use applies: requests are rate-limited per IP to protect the shared service.",
   );
+  const faq = page.locator("#faq");
+  await expect(faq.getByRole("heading", { name: "FAQ" })).toBeVisible();
+  await expect(
+    faq.getByText("Is Ticker Line free to use?", { exact: true }),
+  ).toBeVisible();
+  await faq
+    .getByText("How do I get quote data as JSON?", { exact: true })
+    .click();
+  await expect(faq).toContainText("Add format=json to the sparkline URL.");
+  expect(
+    await page.locator('script[type="application/ld+json"]').textContent(),
+  ).toContain('"@type":"FAQPage"');
 });
 
 test("loads common ticker presets into the live builder", async ({ page }) => {

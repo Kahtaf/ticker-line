@@ -123,6 +123,7 @@ describe("service status", () => {
     expect(response.headers.get("Cache-Control")).toBe(
       "public, max-age=15, s-maxage=30, stale-if-error=60",
     );
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex");
     expect(response.headers.get("X-Request-Id")).toBeTruthy();
     await expect(response.json()).resolves.toEqual({
       status: "degraded",

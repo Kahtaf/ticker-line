@@ -7,6 +7,8 @@ const COMMON_API_HEADERS: Readonly<Record<string, string>> = {
     "ETag, X-Cache, X-Data-As-Of, X-Error-Code, X-Error-Status, X-Request-Id",
   "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff",
+  // API representations are designed for embedding, not for search-result pages.
+  "X-Robots-Tag": "noindex",
 };
 
 export function withApiHeaders(
