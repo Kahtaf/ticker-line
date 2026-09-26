@@ -23,6 +23,7 @@
     "site/**/*.ts",
     "e2e/**/*.ts",
     "src/**/*.ts",
+    "scripts/**/*.ts",
     "test/**/*.ts",
     "*.config.ts",
     "worker-configuration.d.ts"

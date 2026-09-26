@@ -128,11 +128,13 @@ Rendering and caching consume this domain type and never consume raw provider pa
 
 ## Provider order and fallback
 
-`FallbackProvider` calls Sifting first and LSE second. It proceeds to LSE after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
+`src/providers/registry.ts` maps provider names to adapters and builds the chain from the `PROVIDER_ORDER` Worker variable, a comma-separated list such as `sifting,lse`. The default (also used when the value is empty) is Sifting first, then LSE; set `lse,sifting` to put LSE first. Unknown or duplicate names fail configuration on the first request with a `ProviderConfigurationError`, and only the providers named in the order need an API key. One global order applies to every market; providers declare which markets they support, so a provider that cannot serve a market is skipped without counting as a failure.
 
-Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID `sifting-lse`, so a result is reused regardless of which member fulfilled that refresh.
+`FallbackProvider` calls the supporting providers in the configured order. It proceeds to the next one after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
 
-The public request supplies `market`; routing never consults a ticker allowlist or ticker-specific alias table. Sifting supports `stock`, `crypto`, `forex`, and `commodity`. An `index` request skips Sifting locally with a provider-not-found transition and proceeds directly to LSE.
+Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID derived from the configured order (for example `sifting-lse`), so a result is reused regardless of which member fulfilled that refresh, and changing the order starts a fresh cache namespace.
+
+The public request supplies `market`; routing never consults a ticker allowlist or ticker-specific alias table. Sifting supports `stock`, `crypto`, `forex`, and `commodity`. An `index` request skips Sifting before any call is made and is served by LSE.
 
 ## Sifting adapter
 
@@ -280,6 +282,8 @@ All internal failures pass through `toPublicError`, which produces one of:
 - `PROVIDER_ERROR`
 - `SERVICE_UNAVAILABLE`
 
+Transient provider failures (upstream `5xx`, timeouts, schema failures) map to a retryable `502 PROVIDER_ERROR`. A provider authentication or entitlement failure maps to `503 SERVICE_UNAVAILABLE` without `Retry-After`, because a rejected credential does not recover on retry. When a chain ends in not-found or insufficient data after an earlier provider rejected its credential, the authentication failure is reported, since the missing answer is not authoritative. Each authentication failure also logs `market_data_provider_auth_failed` with the provider ID and upstream status only.
+
 JSON responses retain semantic HTTP status and are `no-store` on error. SVG-mode failures return a deterministic fallback with transport status `200`, `X-Error-Code`, and `X-Error-Status`. Fallback cache durations depend on error type; transient provider/service failures are retried quickly, while deterministic lookup failures can be cached briefly.
 
 Fallback output ignores theme, fill, ticker, provider message, and request ID. This keeps one safe artifact per public error code and fallback-renderer version.
@@ -309,7 +313,7 @@ API responses set:
 
 Preflight allows `GET`, `HEAD`, and `OPTIONS` and caches for one day. Method responses include `Allow` where applicable.
 
-Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.dev.vars` is gitignored; `.dev.vars.example` contains placeholders only. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
+Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.env` (and any legacy `.dev.vars`) is gitignored; `.env.example` contains names only. Only providers listed in `PROVIDER_ORDER` require a key. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
 
 ## Observability
 
@@ -396,17 +400,17 @@ Changing behavior without updating the appropriate version can leave incompatibl
 
 ## Local development
 
-Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and Sifting plus LSE API keys for the configured live provider chain.
+Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and an API key for each provider in `PROVIDER_ORDER`.
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars
+cp .env.example .env
 npm run dev:api
 ```
 
 `npm run dev:site` runs Astro separately for documentation work. Normal full-stack browser tests start the Worker development server, which serves the built static site.
 
-Never commit `.dev.vars` or print its contents. Local bindings use Wrangler's local simulation unless explicitly configured otherwise.
+Wrangler loads `.env` for local development and tests when no `.dev.vars` file exists. Never commit `.env` or print its contents. Local bindings use Wrangler's local simulation unless explicitly configured otherwise.
 
 ## Verification strategy
 
@@ -454,7 +458,7 @@ npm run deploy:staging
 npm run deploy
 ```
 
-Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.dev.vars` file without printing them. A deployed smoke test should verify:
+Both deployment scripts build the Astro site, then run `scripts/check-deploy-secrets.ts`. It reads the gitignored `.env`, fails on any key other than `SIFTING_API_KEY` and `LSE_API_KEY` or on an empty value, prints the key names it will upload and keep (never values), and runs `wrangler deploy` with a temporary secrets file holding only those keys. `--secrets-file` is additive, so a secret omitted or commented out in `.env` keeps its deployed value. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
 - `/status` returns `200`, the documented coarse schema, and no provider-specific details;

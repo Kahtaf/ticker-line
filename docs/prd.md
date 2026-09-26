@@ -115,7 +115,7 @@ JSON mode uses semantic HTTP statuses:
 | `422` | `INSUFFICIENT_DATA` | The symbol cannot produce a chart for the requested range |
 | `429` | `RATE_LIMITED` | Fair-use protection rejected the request |
 | `502` | `PROVIDER_ERROR` | The upstream provider failed and no acceptable cached data exists |
-| `503` | `SERVICE_UNAVAILABLE` | The service cannot fulfill the request |
+| `503` | `SERVICE_UNAVAILABLE` | The service cannot fulfill the request, including when a provider rejects its credential |
 
 JSON errors contain a stable public code, safe message, and request ID.
 
@@ -130,7 +130,7 @@ SVG-mode failures remain embeddable. They return HTTP `200`, a deterministic gra
 
 ## Market data and quote semantics
 
-Sifting is the primary market-data provider and London Strategic Edge is the secondary fallback. The required `market` parameter selects the Sifting endpoint without consulting a hardcoded symbol catalog. `index` requests skip Sifting because it has no index-history endpoint and proceed directly to LSE. Provider access, authentication, market-specific symbol formatting, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
+The market-data provider order is configurable through the `PROVIDER_ORDER` Worker variable; by default Sifting is primary and London Strategic Edge is the fallback. The required `market` parameter selects the Sifting endpoint without consulting a hardcoded symbol catalog. `index` requests skip Sifting because it has no index-history endpoint and proceed directly to LSE. Provider access, authentication, market-specific symbol formatting, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
 
 The source interval and plotted-point target depend on the requested range:
 

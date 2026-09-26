@@ -38,7 +38,8 @@
   ],
   "vars": {
     "APP_ENV": "production",
-    "PROVIDER_ID": "sifting-lse",
+    // Provider fallback order. Use "lse,sifting" to put LSE first (update staging too).
+    "PROVIDER_ORDER": "sifting,lse",
     "PROVIDER_VERSION": "v1",
     "SIFTING_BASE_URL": "https://api.sifting.io",
     "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
@@ -89,7 +90,8 @@
       ],
       "vars": {
         "APP_ENV": "staging",
-        "PROVIDER_ID": "sifting-lse",
+        // Keep in sync with the production PROVIDER_ORDER above.
+        "PROVIDER_ORDER": "sifting,lse",
         "PROVIDER_VERSION": "v1",
         "SIFTING_BASE_URL": "https://api.sifting.io",
         "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",

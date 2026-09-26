@@ -27,9 +27,10 @@ import {
   withoutBody,
 } from "./http/headers";
 import { parseSparklineRequest, requestedOutputMode } from "./http/query";
-import { FallbackProvider } from "./providers/fallback";
-import { LseProvider } from "./providers/lse/adapter";
-import { SiftingProvider } from "./providers/sifting/adapter";
+import {
+  createProviderChain,
+  ProviderConfigurationError,
+} from "./providers/registry";
 import {
   createStrongEtag,
   renderSparkline,
@@ -58,19 +59,7 @@ const defaultFactories: AppFactories = {
   now: () => new Date(),
   logger,
   createProvider(_env, config) {
-    return new FallbackProvider({
-      providers: [
-        new SiftingProvider({
-          apiKey: config.siftingApiKey,
-          baseUrl: config.siftingBaseUrl,
-        }),
-        new LseProvider({
-          apiKey: config.lseApiKey,
-          baseUrl: config.lseBaseUrl,
-        }),
-      ],
-      logger,
-    });
+    return createProviderChain(config, { logger });
   },
   createDataCache(env) {
     return new MarketDataCache(env.MARKET_DATA_CACHE, {
@@ -322,6 +311,14 @@ export function createApp(
           error instanceof ProviderError ? error.attempt : undefined,
         ...errorLogFields(error),
       };
+      if (error instanceof ProviderConfigurationError) {
+        // Misconfigured PROVIDER_ORDER or a missing/empty key breaks every
+        // request, so give it its own event. The message names bindings only.
+        factories.logger.error("provider_configuration_invalid", {
+          requestId,
+          ...errorLogFields(error),
+        });
+      }
       if (semanticError.status >= 500) {
         factories.logger.error("request_failed", failureFields);
       } else {

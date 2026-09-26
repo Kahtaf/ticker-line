@@ -142,6 +142,14 @@ export function toPublicError(error: unknown): PublicError {
       message: error.message,
     });
   }
+  if (error instanceof ProviderAuthenticationError) {
+    // A rejected or revoked provider credential will not recover on retry.
+    return {
+      code: "SERVICE_UNAVAILABLE",
+      status: 503,
+      message: "Market data is currently unavailable.",
+    };
+  }
   if (error instanceof ProviderError) {
     return withRetryAfter(error, {
       code: "PROVIDER_ERROR",

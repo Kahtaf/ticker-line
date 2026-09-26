@@ -8,6 +8,7 @@ import {
   ProviderTimeoutError,
 } from "../../domain/errors";
 import type {
+  Market,
   MarketDataProvider,
   MarketPoint,
   MarketSeries,
@@ -22,6 +23,7 @@ import {
 } from "../provider";
 import { siftingBarsSchema, type SiftingBars } from "./schema";
 import {
+  siftingSupportsMarket,
   toSiftingSymbol,
   type SiftingMarket,
   type SiftingSymbol,
@@ -123,6 +125,10 @@ export class SiftingProvider implements MarketDataProvider {
     this.#maxResponseBytes =
       options.maxResponseBytes ?? PROVIDER_RESPONSE_MAX_BYTES;
     this.#maxAttempts = options.maxAttempts ?? 2;
+  }
+
+  supports(market: Market): boolean {
+    return siftingSupportsMarket(market);
   }
 
   async fetchSeries(
