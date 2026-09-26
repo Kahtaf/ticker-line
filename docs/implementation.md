@@ -282,6 +282,8 @@ All internal failures pass through `toPublicError`, which produces one of:
 - `PROVIDER_ERROR`
 - `SERVICE_UNAVAILABLE`
 
+Transient provider failures (upstream `5xx`, timeouts, schema failures) map to a retryable `502 PROVIDER_ERROR`. A provider authentication or entitlement failure maps to `503 SERVICE_UNAVAILABLE` without `Retry-After`, because a rejected credential does not recover on retry. When a chain ends in not-found or insufficient data after an earlier provider rejected its credential, the authentication failure is reported, since the missing answer is not authoritative. Each authentication failure also logs `market_data_provider_auth_failed` with the provider ID and upstream status only.
+
 JSON responses retain semantic HTTP status and are `no-store` on error. SVG-mode failures return a deterministic fallback with transport status `200`, `X-Error-Code`, and `X-Error-Status`. Fallback cache durations depend on error type; transient provider/service failures are retried quickly, while deterministic lookup failures can be cached briefly.
 
 Fallback output ignores theme, fill, ticker, provider message, and request ID. This keeps one safe artifact per public error code and fallback-renderer version.

@@ -1,5 +1,6 @@
 import {
   InsufficientDataError,
+  ProviderAuthenticationError,
   ProviderError,
   ProviderNotFoundError,
   ProviderRateLimitError,
@@ -46,13 +47,34 @@ export class FallbackProvider implements MarketDataProvider {
     );
     if (candidates.length === 0) throw new ProviderNotFoundError();
 
+    let authFailure: ProviderAuthenticationError | undefined;
     for (let index = 0; index < candidates.length; index += 1) {
       const provider = candidates[index];
       if (provider === undefined) break;
       try {
         return await provider.fetchSeries(request, context);
       } catch (error) {
+        if (error instanceof ProviderAuthenticationError) {
+          authFailure ??= error;
+          this.#logger.error("market_data_provider_auth_failed", {
+            requestId: context.requestId,
+            providerId: provider.id,
+            providerStatus: error.providerStatus,
+            ticker: request.ticker,
+            market: request.market,
+          });
+        }
         const fallback = candidates[index + 1];
+        if (fallback === undefined && authFailure !== undefined) {
+          // A not-found or empty answer from a later provider does not prove
+          // the symbol is missing when an earlier one rejected its credential.
+          if (
+            error instanceof ProviderNotFoundError ||
+            error instanceof InsufficientDataError
+          ) {
+            throw authFailure;
+          }
+        }
         if (
           fallback === undefined ||
           context.signal.aborted ||

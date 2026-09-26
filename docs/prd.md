@@ -115,7 +115,7 @@ JSON mode uses semantic HTTP statuses:
 | `422` | `INSUFFICIENT_DATA` | The symbol cannot produce a chart for the requested range |
 | `429` | `RATE_LIMITED` | Fair-use protection rejected the request |
 | `502` | `PROVIDER_ERROR` | The upstream provider failed and no acceptable cached data exists |
-| `503` | `SERVICE_UNAVAILABLE` | The service cannot fulfill the request |
+| `503` | `SERVICE_UNAVAILABLE` | The service cannot fulfill the request, including when a provider rejects its credential |
 
 JSON errors contain a stable public code, safe message, and request ID.
 
