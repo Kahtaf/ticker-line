@@ -27,7 +27,10 @@ import {
   withoutBody,
 } from "./http/headers";
 import { parseSparklineRequest, requestedOutputMode } from "./http/query";
-import { createProviderChain } from "./providers/registry";
+import {
+  createProviderChain,
+  ProviderConfigurationError,
+} from "./providers/registry";
 import {
   createStrongEtag,
   renderSparkline,
@@ -308,6 +311,14 @@ export function createApp(
           error instanceof ProviderError ? error.attempt : undefined,
         ...errorLogFields(error),
       };
+      if (error instanceof ProviderConfigurationError) {
+        // Misconfigured PROVIDER_ORDER or a missing/empty key breaks every
+        // request, so give it its own event. The message names bindings only.
+        factories.logger.error("provider_configuration_invalid", {
+          requestId,
+          ...errorLogFields(error),
+        });
+      }
       if (semanticError.status >= 500) {
         factories.logger.error("request_failed", failureFields);
       } else {

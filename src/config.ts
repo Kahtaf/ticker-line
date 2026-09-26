@@ -46,7 +46,7 @@ export function readConfig(env: Env): AppConfig {
   } as const;
   for (const name of providerOrder) {
     const key = apiKeys[name];
-    if (key === undefined || key.length === 0) {
+    if (key === undefined || key.trim().length === 0) {
       throw new ProviderConfigurationError(
         `${PROVIDER_API_KEY_BINDINGS[name]} is required because PROVIDER_ORDER includes "${name}".`,
       );

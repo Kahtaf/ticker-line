@@ -8,6 +8,7 @@ import {
   ProviderAuthenticationError,
   ProviderError,
   ProviderNotFoundError,
+  ProviderRateLimitError,
   toPublicError,
 } from "../../src/domain/errors";
 import type {
@@ -118,6 +119,94 @@ describe("provider authentication failures", () => {
     await expect(failure).rejects.not.toBeInstanceOf(
       ProviderAuthenticationError,
     );
+  });
+
+  it("keeps a later rate limit retryable", async () => {
+    const rateLimit = new ProviderRateLimitError(undefined, {
+      retryAfterSeconds: 30,
+    });
+    const chain = new FallbackProvider({
+      providers: [
+        failing("lse", lseAuthFailure()),
+        failing("sifting", rateLimit),
+      ],
+      logger: { info() {}, warn() {}, error() {} },
+    });
+
+    await expect(
+      chain.fetchSeries({ ...indexRequest, market: "stock" }, context),
+    ).rejects.toBe(rateLimit);
+  });
+
+  it("returns a later 5xx after an auth failure and an intermediate not-found", async () => {
+    const serverError = new ProviderError(undefined, { providerStatus: 503 });
+    const chain = new FallbackProvider({
+      providers: [
+        failing("lse", lseAuthFailure()),
+        failing("middle", new ProviderNotFoundError()),
+        failing("sifting", serverError),
+      ],
+      logger: { info() {}, warn() {}, error() {} },
+    });
+
+    await expect(
+      chain.fetchSeries({ ...indexRequest, market: "stock" }, context),
+    ).rejects.toBe(serverError);
+  });
+
+  it("logs a distinct event when provider configuration is invalid", async () => {
+    const error = vi.fn();
+    const createProvider = vi.fn();
+    const app = createApp({
+      logger: { info() {}, warn() {}, error },
+      createProvider,
+      createDataCache: () => new MarketDataCache(new MemoryKv()),
+      createStatusStore: () => ({
+        async read() {
+          return undefined;
+        },
+        async recordMarketData() {},
+      }),
+    });
+    const allow = { limit: async () => ({ success: true }) };
+    const env = {
+      APP_ENV: "staging",
+      PROVIDER_ORDER: "sifting,lse",
+      PROVIDER_VERSION: "v1",
+      SIFTING_BASE_URL: "https://sifting.example.test",
+      LSE_BASE_URL: "https://lse.example.test",
+      CACHE_POLICY_VERSION: "v1",
+      NORMALIZATION_VERSION: "config-error-test",
+      RENDERER_VERSION: "config-error-test",
+      SIFTING_API_KEY: "fixture-sifting-key",
+      LSE_API_KEY: "",
+      SPARKLINE_BURST_RATE_LIMITER: allow,
+      SPARKLINE_RATE_LIMITER: allow,
+    } as unknown as Env;
+    const executionCtx = {
+      waitUntil() {},
+      passThroughOnException() {},
+      props: {},
+    } as unknown as ExecutionContext;
+
+    const response = await app.request(
+      "https://ticker-line.test/v1/sparkline?ticker=AAPL&market=stock&timeframe=1m&format=json",
+      {},
+      env,
+      executionCtx,
+    );
+
+    expect(response.status).toBeGreaterThanOrEqual(500);
+    expect(createProvider).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      "provider_configuration_invalid",
+      expect.objectContaining({
+        errorType: "ProviderConfigurationError",
+        errorMessage: expect.stringContaining("LSE_API_KEY") as unknown,
+      }),
+    );
+    const logged = JSON.stringify(error.mock.calls);
+    expect(logged).not.toContain("fixture-sifting-key");
   });
 
   it("returns 503 JSON for an index when Sifting is not found and LSE returns 401", async () => {

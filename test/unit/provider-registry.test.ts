@@ -127,6 +127,22 @@ describe("readConfig provider order", () => {
   });
 });
 
+describe("readConfig API keys", () => {
+  it.each([
+    ["SIFTING_API_KEY", ""],
+    ["LSE_API_KEY", ""],
+    ["SIFTING_API_KEY", "   "],
+    ["LSE_API_KEY", " \t "],
+  ])("rejects an empty %s (%j) for the default order", (binding, value) => {
+    expect(() => readConfig(envWith({ [binding]: value }))).toThrow(
+      ProviderConfigurationError,
+    );
+    expect(() => readConfig(envWith({ [binding]: value }))).toThrow(
+      new RegExp(`${binding} is required`),
+    );
+  });
+});
+
 describe("createProviderChain", () => {
   it("calls Sifting first for stocks by default", async () => {
     const { fetch, hosts } = routedFetch({
