@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  InsufficientDataError,
   ProviderAuthenticationError,
   ProviderError,
   ProviderNotFoundError,
+  ProviderRateLimitError,
   ProviderTimeoutError,
 } from "../../src/domain/errors";
 import type {
@@ -65,6 +67,8 @@ describe("FallbackProvider", () => {
     new ProviderError(undefined, { providerStatus: 503, attempt: 2 }),
     new ProviderTimeoutError(),
     new ProviderAuthenticationError(undefined, { providerStatus: 401 }),
+    new ProviderRateLimitError(),
+    new InsufficientDataError(),
   ])("falls back after a provider-domain failure", async (failure) => {
     const warn = vi.fn();
     const fallbackFetch = vi.fn(async () => series);
