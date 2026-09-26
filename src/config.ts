@@ -25,7 +25,7 @@ export type AppConfig = Readonly<{
   environment: "staging" | "production";
   /** Providers in the order they are tried. */
   providerOrder: ProviderOrder;
-  /** Cache-key identity derived from the provider order, e.g. `lse-sifting`. */
+  /** Cache-key identity derived from the provider order, e.g. `sifting-lse`. */
   providerId: string;
   providerVersion: string;
   siftingBaseUrl: string;

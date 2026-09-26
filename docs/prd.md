@@ -130,7 +130,7 @@ SVG-mode failures remain embeddable. They return HTTP `200`, a deterministic gra
 
 ## Market data and quote semantics
 
-The market-data provider order is configurable through the `PROVIDER_ORDER` Worker variable; by default London Strategic Edge is primary and Sifting is the fallback. The required `market` parameter selects the Sifting endpoint without consulting a hardcoded symbol catalog. `index` requests skip Sifting because it has no index-history endpoint. Provider access, authentication, market-specific symbol formatting, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
+The market-data provider order is configurable through the `PROVIDER_ORDER` Worker variable; by default Sifting is primary and London Strategic Edge is the fallback. The required `market` parameter selects the Sifting endpoint without consulting a hardcoded symbol catalog. `index` requests skip Sifting because it has no index-history endpoint and proceed directly to LSE. Provider access, authentication, market-specific symbol formatting, fallback behavior, retries, pagination, validation, and normalization remain behind internal adapters.
 
 The source interval and plotted-point target depend on the requested range:
 

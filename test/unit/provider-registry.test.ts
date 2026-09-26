@@ -64,9 +64,9 @@ function routedFetch(routes: Record<string, () => Response>): {
 }
 
 describe("parseProviderOrder", () => {
-  it("defaults to LSE first, then Sifting", () => {
-    expect(DEFAULT_PROVIDER_ORDER).toEqual(["lse", "sifting"]);
-    expect(parseProviderOrder(undefined)).toEqual(["lse", "sifting"]);
+  it("defaults to Sifting first, then LSE", () => {
+    expect(DEFAULT_PROVIDER_ORDER).toEqual(["sifting", "lse"]);
+    expect(parseProviderOrder(undefined)).toEqual(["sifting", "lse"]);
   });
 
   it.each(["", "  ", ",", " , "])(
@@ -100,14 +100,14 @@ describe("parseProviderOrder", () => {
 describe("readConfig provider order", () => {
   it("uses the default order and derives the cache provider id from it", () => {
     const config = readConfig(envWith({}));
-    expect(config.providerOrder).toEqual(["lse", "sifting"]);
-    expect(config.providerId).toBe("lse-sifting");
+    expect(config.providerOrder).toEqual(["sifting", "lse"]);
+    expect(config.providerId).toBe("sifting-lse");
   });
 
   it("reads a swapped PROVIDER_ORDER", () => {
-    const config = readConfig(envWith({ PROVIDER_ORDER: "sifting,lse" }));
-    expect(config.providerOrder).toEqual(["sifting", "lse"]);
-    expect(config.providerId).toBe("sifting-lse");
+    const config = readConfig(envWith({ PROVIDER_ORDER: "lse,sifting" }));
+    expect(config.providerOrder).toEqual(["lse", "sifting"]);
+    expect(config.providerId).toBe("lse-sifting");
   });
 
   it("fails fast on an unknown provider name", () => {
@@ -128,7 +128,7 @@ describe("readConfig provider order", () => {
 });
 
 describe("createProviderChain", () => {
-  it("calls LSE first for stocks by default", async () => {
+  it("calls Sifting first for stocks by default", async () => {
     const { fetch, hosts } = routedFetch({
       "lse.example.test": () => Response.json(lseAapl),
       "sifting.example.test": () => Response.json(siftingAapl),
@@ -138,23 +138,24 @@ describe("createProviderChain", () => {
       fetch,
     });
 
-    expect(chain.id).toBe("lse-sifting");
+    expect(chain.id).toBe("sifting-lse");
     await chain.fetchSeries(stockRequest, context);
-    expect(hosts).toEqual(["lse.example.test"]);
+    expect(hosts).toEqual(["sifting.example.test"]);
   });
 
-  it("calls Sifting first when the order is swapped", async () => {
+  it("calls LSE first when the order is swapped", async () => {
     const { fetch, hosts } = routedFetch({
       "lse.example.test": () => Response.json(lseAapl),
       "sifting.example.test": () => Response.json(siftingAapl),
     });
     const chain = createProviderChain(
-      readConfig(envWith({ PROVIDER_ORDER: "sifting,lse" })),
+      readConfig(envWith({ PROVIDER_ORDER: "lse,sifting" })),
       { logger: silentLogger, fetch },
     );
 
+    expect(chain.id).toBe("lse-sifting");
     await chain.fetchSeries(stockRequest, context);
-    expect(hosts).toEqual(["sifting.example.test"]);
+    expect(hosts).toEqual(["lse.example.test"]);
   });
 
   it("serves indices from LSE whichever order is configured", async () => {
@@ -178,10 +179,10 @@ describe("createProviderChain", () => {
         Response.json({ detail: "api key inactive" }, { status: 403 }),
       "sifting.example.test": () => Response.json(siftingAapl),
     });
-    const chain = createProviderChain(readConfig(envWith({})), {
-      logger: silentLogger,
-      fetch,
-    });
+    const chain = createProviderChain(
+      readConfig(envWith({ PROVIDER_ORDER: "lse,sifting" })),
+      { logger: silentLogger, fetch },
+    );
 
     const series = await chain.fetchSeries(stockRequest, context);
     expect(series.resolvedTicker).toBe("AAPL");

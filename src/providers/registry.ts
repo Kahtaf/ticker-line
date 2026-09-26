@@ -9,8 +9,11 @@ export const PROVIDER_NAMES = ["lse", "sifting"] as const;
 export type ProviderName = (typeof PROVIDER_NAMES)[number];
 export type ProviderOrder = readonly [ProviderName, ...ProviderName[]];
 
-/** LSE covers every public market, so it leads; Sifting is the fallback. */
-export const DEFAULT_PROVIDER_ORDER: ProviderOrder = ["lse", "sifting"];
+/**
+ * Sifting leads and LSE is the fallback. Sifting cannot serve `index`, so
+ * indices go straight to LSE. Swap with `PROVIDER_ORDER=lse,sifting`.
+ */
+export const DEFAULT_PROVIDER_ORDER: ProviderOrder = ["sifting", "lse"];
 
 /** Secret binding that holds each provider's API key. */
 export const PROVIDER_API_KEY_BINDINGS: Readonly<Record<ProviderName, string>> =
@@ -31,7 +34,7 @@ function isProviderName(value: string): value is ProviderName {
 }
 
 /**
- * Parse a comma-separated provider order such as `lse,sifting`.
+ * Parse a comma-separated provider order such as `sifting,lse`.
  * An unset or empty value selects the default order.
  */
 export function parseProviderOrder(value: string | undefined): ProviderOrder {

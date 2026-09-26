@@ -92,8 +92,8 @@ SVG requests remain embeddable when something goes wrong: the API returns a gray
 Requirements:
 
 - Node.js 22.12 or newer
-- A [London Strategic Edge API key](https://londonstrategicedge.com/data#api) for the default primary provider
-- A [SiftingIO API key](https://sifting.io/register) for fallback coverage
+- A [SiftingIO API key](https://sifting.io/register) for the default primary provider
+- A [London Strategic Edge API key](https://londonstrategicedge.com/data#api) for fallback coverage
 - Wrangler authentication for deployment only
 
 Install dependencies and configure the local Worker:
@@ -121,7 +121,9 @@ Useful commands:
 
 The default test suite uses provider fixtures and does not call live provider APIs.
 
-Providers are tried in the order set by `PROVIDER_ORDER` in `wrangler.jsonc` (default `lse,sifting`). Swap the names to change the order, or list one provider to use it alone; providers that cannot serve a market, such as Sifting for `index`, are skipped. Only listed providers need a key.
+Providers are tried in the order set by `PROVIDER_ORDER` in `wrangler.jsonc` (default `sifting,lse`). Providers that cannot serve a market are skipped, so `index` requests go straight to LSE. Only listed providers need a key.
+
+To put LSE first, set `"PROVIDER_ORDER": "lse,sifting"` in both the production and staging `vars` blocks of `wrangler.jsonc` and redeploy (`npm run deploy`, `npm run deploy:staging`). For local development only, run `npx wrangler dev --var PROVIDER_ORDER:lse,sifting`. List a single provider, such as `lse`, to use it alone. Changing the order also changes the cache namespace (`sifting-lse` or `lse-sifting`), so the first requests after a swap refill the cache.
 
 ## Architecture
 
@@ -137,7 +139,7 @@ Providers are tried in the order set by `PROVIDER_ORDER` in `wrangler.jsonc` (de
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening an issue or pull request. Report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
 
-Market data is sourced through [London Strategic Edge](https://londonstrategicedge.com/data/#overview) with [SiftingIO](https://sifting.io) as fallback. Data may be delayed or contain errors. ticker-line is not financial advice.
+Market data is sourced through [SiftingIO](https://sifting.io) with [London Strategic Edge](https://londonstrategicedge.com/data/#overview) as fallback. Data may be delayed or contain errors. ticker-line is not financial advice.
 
 ## License
 
