@@ -41,13 +41,18 @@ export class FallbackProvider implements MarketDataProvider {
     request: MarketSeriesRequest,
     context: ProviderRequestContext,
   ): Promise<MarketSeries> {
-    for (let index = 0; index < this.#providers.length; index += 1) {
-      const provider = this.#providers[index];
+    const candidates = this.#providers.filter(
+      (provider) => provider.supports?.(request.market) ?? true,
+    );
+    if (candidates.length === 0) throw new ProviderNotFoundError();
+
+    for (let index = 0; index < candidates.length; index += 1) {
+      const provider = candidates[index];
       if (provider === undefined) break;
       try {
         return await provider.fetchSeries(request, context);
       } catch (error) {
-        const fallback = this.#providers[index + 1];
+        const fallback = candidates[index + 1];
         if (
           fallback === undefined ||
           context.signal.aborted ||

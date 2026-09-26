@@ -16,6 +16,11 @@ const SIFTING_MARKETS: Readonly<Partial<Record<Market, SiftingMarket>>> = {
   commodity: "commodities",
 };
 
+/** Sifting has no index-history endpoint; other public markets map directly. */
+export function siftingSupportsMarket(market: Market): boolean {
+  return SIFTING_MARKETS[market] !== undefined;
+}
+
 function concatenatedSymbol(ticker: string): string {
   return ticker.replace(/[/-]/g, "");
 }

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { ProviderError, ProviderNotFoundError } from "../../src/domain/errors";
+import {
+  ProviderAuthenticationError,
+  ProviderError,
+  ProviderNotFoundError,
+  ProviderTimeoutError,
+} from "../../src/domain/errors";
 import type {
   MarketDataProvider,
   MarketSeries,
@@ -30,8 +35,11 @@ const series: MarketSeries = {
 function provider(
   id: string,
   fetchSeries: MarketDataProvider["fetchSeries"],
+  supports?: MarketDataProvider["supports"],
 ): MarketDataProvider {
-  return { id, fetchSeries };
+  return supports === undefined
+    ? { id, fetchSeries }
+    : { id, fetchSeries, supports };
 }
 
 describe("FallbackProvider", () => {
@@ -55,6 +63,8 @@ describe("FallbackProvider", () => {
   it.each([
     new ProviderNotFoundError(),
     new ProviderError(undefined, { providerStatus: 503, attempt: 2 }),
+    new ProviderTimeoutError(),
+    new ProviderAuthenticationError(undefined, { providerStatus: 401 }),
   ])("falls back after a provider-domain failure", async (failure) => {
     const warn = vi.fn();
     const fallbackFetch = vi.fn(async () => series);
@@ -94,5 +104,68 @@ describe("FallbackProvider", () => {
     await expect(chain.fetchSeries(request, context)).rejects.toMatchObject({
       providerStatus: 502,
     });
+  });
+
+  it("skips providers that do not support the market without counting a failure", async () => {
+    const warn = vi.fn();
+    const unsupportedFetch = vi.fn(async () => series);
+    const supportedFetch = vi.fn(async () => series);
+    const chain = new FallbackProvider({
+      providers: [
+        provider("sifting", unsupportedFetch, (market) => market !== "index"),
+        provider("lse", supportedFetch),
+      ],
+      logger: { info() {}, warn, error() {} },
+    });
+
+    await expect(
+      chain.fetchSeries({ ...request, market: "index" }, context),
+    ).resolves.toBe(series);
+    expect(unsupportedFetch).not.toHaveBeenCalled();
+    expect(supportedFetch).toHaveBeenCalledOnce();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("names the next supporting provider when falling back", async () => {
+    const warn = vi.fn();
+    const chain = new FallbackProvider({
+      providers: [
+        provider("first", async () => {
+          throw new ProviderError(undefined, { providerStatus: 500 });
+        }),
+        provider(
+          "unsupported",
+          async () => series,
+          () => false,
+        ),
+        provider("last", async () => series),
+      ],
+      logger: { info() {}, warn, error() {} },
+    });
+
+    await expect(chain.fetchSeries(request, context)).resolves.toBe(series);
+    expect(warn).toHaveBeenCalledWith(
+      "market_data_provider_fallback",
+      expect.objectContaining({
+        providerId: "first",
+        fallbackProviderId: "last",
+      }),
+    );
+  });
+
+  it("reports not found when no configured provider supports the market", async () => {
+    const chain = new FallbackProvider({
+      providers: [
+        provider(
+          "sifting",
+          async () => series,
+          () => false,
+        ),
+      ],
+      logger: { info() {}, warn() {}, error() {} },
+    });
+    await expect(chain.fetchSeries(request, context)).rejects.toBeInstanceOf(
+      ProviderNotFoundError,
+    );
   });
 });

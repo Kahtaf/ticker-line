@@ -2,7 +2,7 @@
 
 - **Status:** Complete
 - **Run date:** 2026-07-12
-- **Current provider order:** Sifting first, London Strategic Edge (LSE) second
+- **Current provider order:** Configurable through `PROVIDER_ORDER`; the default is London Strategic Edge (LSE) first, Sifting second
 - **Provider evaluated here:** London Strategic Edge (LSE)
 - **Live-call budget:** 15 calls maximum
 - **Live calls made:** 15
@@ -10,7 +10,7 @@
 
 ## 1. Purpose
 
-This historical spike closes the highest-risk implementation questions around the LSE candle API before its provider adapter was built. Sifting is now the primary provider; LSE supplies secondary fallback coverage. The spike covers timestamp semantics, provisional candles, price adjustments, international and ambiguous symbols, the `dataset` discriminator, catalog filtering, error envelopes, and metadata availability.
+This historical spike closes the highest-risk implementation questions around the LSE candle API before its provider adapter was built. The provider order is now configurable; LSE is the default primary provider and Sifting the fallback. The spike covers timestamp semantics, provisional candles, price adjustments, international and ambiguous symbols, the `dataset` discriminator, catalog filtering, error envelopes, and metadata availability.
 
 The product owner has confirmed written LSE permission for automated use, caching, derived public SVG redistribution, and commercial use. That permission is accepted as a project fact and was not re-evaluated by this spike.
 

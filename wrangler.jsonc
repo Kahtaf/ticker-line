@@ -38,7 +38,7 @@
   ],
   "vars": {
     "APP_ENV": "production",
-    "PROVIDER_ID": "sifting-lse",
+    "PROVIDER_ORDER": "lse,sifting",
     "PROVIDER_VERSION": "v1",
     "SIFTING_BASE_URL": "https://api.sifting.io",
     "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",
@@ -89,7 +89,7 @@
       ],
       "vars": {
         "APP_ENV": "staging",
-        "PROVIDER_ID": "sifting-lse",
+        "PROVIDER_ORDER": "lse,sifting",
         "PROVIDER_VERSION": "v1",
         "SIFTING_BASE_URL": "https://api.sifting.io",
         "LSE_BASE_URL": "https://api.londonstrategicedge.com/vault",

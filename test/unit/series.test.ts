@@ -136,7 +136,8 @@ describe("one-day series selection", () => {
     };
     const config: AppConfig = {
       environment: "staging",
-      providerId: "sifting-lse",
+      providerOrder: ["lse", "sifting"],
+      providerId: "lse-sifting",
       providerVersion: "v1",
       siftingBaseUrl: "https://sifting.example.test",
       lseBaseUrl: "https://lse.example.test",

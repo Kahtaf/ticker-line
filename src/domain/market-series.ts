@@ -42,6 +42,11 @@ export type ProviderRequestContext = Readonly<{
 
 export interface MarketDataProvider {
   readonly id: string;
+  /**
+   * Whether this provider can serve the market at all. Omitted means every
+   * market. Unsupported providers are skipped rather than counted as failures.
+   */
+  supports?(market: Market): boolean;
   fetchSeries(
     request: MarketSeriesRequest,
     context: ProviderRequestContext,

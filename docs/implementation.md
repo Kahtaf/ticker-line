@@ -128,11 +128,13 @@ Rendering and caching consume this domain type and never consume raw provider pa
 
 ## Provider order and fallback
 
-`FallbackProvider` calls Sifting first and LSE second. It proceeds to LSE after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
+`src/providers/registry.ts` maps provider names to adapters and builds the chain from the `PROVIDER_ORDER` Worker variable, a comma-separated list such as `lse,sifting`. The default (also used when the value is empty) is LSE first, then Sifting. Unknown or duplicate names fail configuration on the first request with a `ProviderConfigurationError`, and only the providers named in the order need an API key. One global order applies to every market; providers declare which markets they support, so a provider that cannot serve a market is skipped without counting as a failure.
 
-Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID `sifting-lse`, so a result is reused regardless of which member fulfilled that refresh.
+`FallbackProvider` calls the supporting providers in the configured order. It proceeds to the next one after a provider-domain failure, including unsupported/not-found symbols, insufficient data, authentication or entitlement failures, rate limits, timeouts, schema failures, and transient upstream failures. It does not continue after the caller aborts or after an unexpected application error.
 
-The public request supplies `market`; routing never consults a ticker allowlist or ticker-specific alias table. Sifting supports `stock`, `crypto`, `forex`, and `commodity`. An `index` request skips Sifting locally with a provider-not-found transition and proceeds directly to LSE.
+Every transition emits a sanitized `market_data_provider_fallback` warning containing provider IDs, request ID, ticker, error type, and any safe provider status. It never logs keys, provider URLs, or response bodies. Cache keys use the composite provider ID derived from the configured order (for example `lse-sifting`), so a result is reused regardless of which member fulfilled that refresh, and changing the order starts a fresh cache namespace.
+
+The public request supplies `market`; routing never consults a ticker allowlist or ticker-specific alias table. Sifting supports `stock`, `crypto`, `forex`, and `commodity`. An `index` request skips Sifting before any call is made and is served by LSE.
 
 ## Sifting adapter
 
