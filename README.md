@@ -100,10 +100,10 @@ Install dependencies and configure the local Worker:
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars
+cp .env.example .env
 ```
 
-Add both provider keys to `.dev.vars`, then start the API or documentation site:
+Add the provider keys to `.env` (gitignored; Wrangler loads it for local development, and the deploy scripts upload it as Worker secrets). A `.dev.vars` file, if present, takes precedence over `.env`, so remove any old one. Then start the API or documentation site:
 
 ```sh
 npm run dev:api
@@ -120,6 +120,8 @@ Useful commands:
 | `npm run build`       | Static site build and Worker dry run                                |
 
 The default test suite uses provider fixtures and does not call live provider APIs.
+
+Providers are tried in the order set by `PROVIDER_ORDER` in `wrangler.jsonc` (default `lse,sifting`). Swap the names to change the order, or list one provider to use it alone; providers that cannot serve a market, such as Sifting for `index`, are skipped. Only listed providers need a key.
 
 ## Architecture
 

@@ -6,14 +6,14 @@ Thanks for helping improve Ticker Line.
 
 - Open an issue for public API changes, new providers, or significant dependencies.
 - Keep the URL contract small and provider-neutral.
-- Never commit provider credentials, response dumps containing sensitive fields, or `.dev.vars`.
+- Never commit provider credentials, response dumps containing sensitive fields, or `.env` / `.dev.vars`.
 - Keep changes focused and use conventional, atomic commit messages where practical.
 
 ## Local workflow
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars
+cp .env.example .env
 npm run check
 npm run test:visual
 npm run test:e2e

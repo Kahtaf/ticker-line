@@ -33,10 +33,10 @@
     "test:watch": "vitest",
     "test:visual": "vitest run --config vitest.visual.config.ts",
     "test:e2e": "npm run build:site && playwright test",
-    "cf:typegen": "wrangler types",
+    "cf:typegen": "wrangler types --env-file .env.example",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
-    "deploy:staging": "npm run build:site && wrangler deploy --env staging --secrets-file .dev.vars",
-    "deploy": "npm run build:site && wrangler deploy --env=\"\" --secrets-file .dev.vars"
+    "deploy:staging": "npm run build:site && wrangler deploy --env staging --secrets-file .env",
+    "deploy": "npm run build:site && wrangler deploy --env=\"\" --secrets-file .env"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.0",

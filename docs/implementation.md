@@ -313,7 +313,7 @@ API responses set:
 
 Preflight allows `GET`, `HEAD`, and `OPTIONS` and caches for one day. Method responses include `Allow` where applicable.
 
-Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.dev.vars` is gitignored; `.dev.vars.example` contains placeholders only. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
+Provider credentials are read from the `SIFTING_API_KEY` and `LSE_API_KEY` Worker secrets. `.env` (and any legacy `.dev.vars`) is gitignored; `.env.example` contains names only. Only providers listed in `PROVIDER_ORDER` require a key. Secrets never belong in `wrangler.jsonc`, commands, logs, cache keys, or responses.
 
 ## Observability
 
@@ -400,17 +400,17 @@ Changing behavior without updating the appropriate version can leave incompatibl
 
 ## Local development
 
-Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and Sifting plus LSE API keys for the configured live provider chain.
+Requirements are Node.js 22.12 or newer, npm, Wrangler 4, and an API key for each provider in `PROVIDER_ORDER`.
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars
+cp .env.example .env
 npm run dev:api
 ```
 
 `npm run dev:site` runs Astro separately for documentation work. Normal full-stack browser tests start the Worker development server, which serves the built static site.
 
-Never commit `.dev.vars` or print its contents. Local bindings use Wrangler's local simulation unless explicitly configured otherwise.
+Wrangler loads `.env` for local development and tests when no `.dev.vars` file exists. Never commit `.env` or print its contents. Local bindings use Wrangler's local simulation unless explicitly configured otherwise.
 
 ## Verification strategy
 
@@ -458,7 +458,7 @@ npm run deploy:staging
 npm run deploy
 ```
 
-Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.dev.vars` file without printing them. A deployed smoke test should verify:
+Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.env` file without printing them. `--secrets-file` is additive, so a secret omitted from `.env` keeps its deployed value. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
 - `/status` returns `200`, the documented coarse schema, and no provider-specific details;
