@@ -458,7 +458,7 @@ npm run deploy:staging
 npm run deploy
 ```
 
-Both deployment scripts build the Astro site and upload `SIFTING_API_KEY` and `LSE_API_KEY` from the gitignored `.env` file without printing them. `--secrets-file` is additive, so a secret omitted from `.env` keeps its deployed value. A deployed smoke test should verify:
+Both deployment scripts build the Astro site, then run `scripts/check-deploy-secrets.ts`. It reads the gitignored `.env`, fails on any key other than `SIFTING_API_KEY` and `LSE_API_KEY` or on an empty value, prints the key names it will upload and keep (never values), and runs `wrangler deploy` with a temporary secrets file holding only those keys. `--secrets-file` is additive, so a secret omitted or commented out in `.env` keeps its deployed value. A deployed smoke test should verify:
 
 - `/health` returns `200` and `{ "status": "ok" }`;
 - `/status` returns `200`, the documented coarse schema, and no provider-specific details;

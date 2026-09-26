@@ -103,7 +103,7 @@ npm ci
 cp .env.example .env
 ```
 
-Add the provider keys to `.env` (gitignored; Wrangler loads it for local development, and the deploy scripts upload it as Worker secrets). A `.dev.vars` file, if present, takes precedence over `.env`, so remove any old one. Then start the API or documentation site:
+Uncomment the provider keys in `.env` and set their values (gitignored; Wrangler loads it for local development). The deploy scripts upload only `SIFTING_API_KEY` and `LSE_API_KEY` from it as Worker secrets: they stop if `.env` holds any other key or an empty value, and a key left commented out keeps its deployed value. A `.dev.vars` file, if present, takes precedence over `.env`, so remove any old one. Then start the API or documentation site:
 
 ```sh
 npm run dev:api
@@ -123,7 +123,7 @@ The default test suite uses provider fixtures and does not call live provider AP
 
 Providers are tried in the order set by `PROVIDER_ORDER` in `wrangler.jsonc` (default `sifting,lse`). Providers that cannot serve a market are skipped, so `index` requests go straight to LSE. Only listed providers need a key.
 
-To put LSE first, set `"PROVIDER_ORDER": "lse,sifting"` in both the production and staging `vars` blocks of `wrangler.jsonc` and redeploy (`npm run deploy`, `npm run deploy:staging`). For local development only, run `npx wrangler dev --var PROVIDER_ORDER:lse,sifting`. List a single provider, such as `lse`, to use it alone. Changing the order also changes the cache namespace (`sifting-lse` or `lse-sifting`), so the first requests after a swap refill the cache.
+To put LSE first, set `"PROVIDER_ORDER": "lse,sifting"` in both the production and staging `vars` blocks of `wrangler.jsonc` and redeploy (`npm run deploy`, `npm run deploy:staging`). For local development only, run `npx wrangler dev --var PROVIDER_ORDER:lse,sifting`. List a single provider, such as `lse`, to use it alone. Sifting cannot serve `index`, so `PROVIDER_ORDER=sifting` on its own makes every `index` request return 404. Changing the order also changes the cache namespace (`sifting-lse` or `lse-sifting`), so the first requests after a swap refill the cache.
 
 ## Architecture
 
